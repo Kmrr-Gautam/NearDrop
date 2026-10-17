@@ -6,55 +6,66 @@
 
 <p align="center">
   <strong>Fast, private, and effortless offline file sharing for Android.</strong><br>
-  Instant QR Code Pairing • Zero Cloud • No Tracking • 100% Peer-to-Peer
+  Instant In-App Updates • Screen QR Scanner • Zero Cloud Transit • 100% Peer-to-Peer
 </p>
 
 <p align="center">
-  <a href="https://github.com/Kmrr-Gautam/NearDrop/releases"><img src="https://img.shields.io/badge/Release-v0.2.1-blue.svg?style=for-the-badge" alt="Release" /></a>
+  <a href="https://github.com/Kmrr-Gautam/NearDrop/releases"><img src="https://img.shields.io/badge/Release-v0.2.3-blue.svg?style=for-the-badge" alt="Release" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Platform-Android%208.0%2B-green.svg?style=for-the-badge&logo=android" alt="Platform" /></a>
-  <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Language-Kotlin%202.0-purple.svg?style=for-the-badge&logo=kotlin" alt="Kotlin" /></a>
-  <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4.svg?style=for-the-badge&logo=jetpackcompose" alt="Compose" /></a>
+  <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Language-Kotlin%20%26%20Java-purple.svg?style=for-the-badge&logo=kotlin" alt="Kotlin and Java" /></a>
+  <a href="https://fastapi.tiangolo.com"><img src="https://img.shields.io/badge/Backend-FastAPI%20Python-009688.svg?style=for-the-badge&logo=fastapi" alt="FastAPI" /></a>
+  <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/UI-Claymorphism%20Compose-4285F4.svg?style=for-the-badge&logo=jetpackcompose" alt="Compose" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-orange.svg?style=for-the-badge" alt="License" /></a>
 </p>
 
 ---
 
-## 📥 Download APK
+## 📥 Download Latest APK (v0.2.3)
 
-Install the verified release APK and start transferring files instantly:
+Download the verified release APK directly and start transferring files offline at maximum Wi-Fi speeds:
 
 <p align="center">
-  <a href="https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.1.apk">
-    <img src="https://img.shields.io/badge/⬇️%20Direct%20Download-NearDrop%20v0.2.1%20APK-2ea44f?style=for-the-badge&logo=android&logoColor=white" height="44" alt="Download APK" />
+  <a href="https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.3.apk">
+    <img src="https://img.shields.io/badge/⬇️%20Direct%20Download-NearDrop%20v0.2.3%20APK-2ea44f?style=for-the-badge&logo=android&logoColor=white" height="46" alt="Download APK v0.2.3" />
   </a>
 </p>
 
-* **Direct Repository Download**: [`release/neardrop-v0.2.1.apk`](https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.1.apk) *(20 MB)*
+* **Direct Repository Download**: [`release/neardrop-v0.2.3.apk`](https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.3.apk) *(14.2 MB)*
 * **GitHub Releases**: [NearDrop Releases](https://github.com/Kmrr-Gautam/NearDrop/releases)
 * **Developer Profile**: [Gautam Kumar (@Kmrr-Gautam)](https://github.com/Kmrr-Gautam)
 
 ---
 
-## 🌟 What's New in v0.2.1
+## 🌟 What's New in v0.2.3
 
-* 🔗 **Developer Profile**: Direct developer GitHub link (`@Kmrr-Gautam`) embedded right in Settings.
-* 🚀 **Fluid File Flying Animation**: Physics-inspired parabolic Bezier flight trajectory connecting devices with realistic 3D banking, comet stardust trails, and receiver absorption pulses.
-* ✨ **Spotlight File Card**: Clean, prominent typography showing exact file names, vibrant color-coded file badges (Images, Videos, Music, Documents, Archives, APKs), and formatted sizes.
-* 🧹 **Zero Clutter**: Completely eliminated redundant cards and repetitive text walls for a modern, focused user experience.
-* 📲 **Instant Receiving Screen**: Automatically transitions into the progress page as soon as incoming files are accepted.
-* 🔄 **Live In-App Updates**: Built-in GitHub update checker displays a "What's New" popup with one-tap APK installation.
+* ⚡ **Seamless In-App Update Downloader**:
+  - Download and install updates directly inside NearDrop without leaving the app or opening a browser!
+  - Real-time Clay progress bar with live percentage and downloaded byte counters (`MB / MB`).
+  - Automatic Android Package Installer prompt launch as soon as the download finishes.
+  - Smart cache detection: if the update package is already downloaded, tap **Install Now** immediately.
+* 📱 **Screen & Monitor QR Scanner**:
+  - Rewritten CameraX image analysis pipeline eliminating row-stride distortion.
+  - Instant zero-latency QR code detection on PC screens, laptop monitors, and mobile displays with dual binarizers.
+* 🌐 **Device Local IP Display**:
+  - Displays the device's local network IP address directly in **Settings > About & Network** with a 1-tap copy button.
+* ☁️ **Complete FastAPI Cloud Control Plane (`neardrop-backend/`)**:
+  - Python 3.11+ backend with JWT authentication, device token management, 8-character transfer session codes, and offline history synchronization (`/api/v1/transfers/sync`).
+  - **Zero-File-Transit Architecture**: File payloads transfer 100% phone-to-phone; zero file bytes pass through the cloud server.
+* 🎨 **Parabolic File Flying Animation**:
+  - Fluid Bezier flight curve connecting devices with realistic 3D banking, stardust particle trails, and receiver absorption pulses.
+* 🔗 **Developer Profile**:
+  - One-tap link to developer GitHub profile ([@Kmrr-Gautam](https://github.com/Kmrr-Gautam)) embedded directly in Settings.
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
-- ⚡ **Instant QR Code Transfer**: The receiver taps **"Show QR Code"**, the sender taps **"Scan QR"**, and the devices connect immediately without waiting for discovery or typing any IP addresses!
-- 🎨 **Animated Parabolic Transfer Flight**: Real-time visual flight paths showing files streaming across devices.
-- 👴 **Senior-Friendly & Minimal**: Designed with tactile pastel clay cards, high contrast, extra-large touch targets, and zero jargon.
-- 📄 **Prominent File Names & Sizes**: Every screen highlights the exact file names, sizes, and file type icons (photos, videos, audio, documents).
-- 🔒 **100% Private & P2P**: Direct Wi-Fi / Local Network transfer using hardware-backed ECDH key agreement and AES-256-GCM authenticated encryption. No accounts, no cloud relays, no tracking.
-- 🔄 **Built-in "Check for Updates"**: Software update check integrated directly into Settings with automatic notifications and release notes.
-- 🚀 **High Speed & Resumable**: High-throughput raw socket streaming with chunk-level SHA-256 verification and interrupted transfer resume.
+- ⚡ **Instant QR Code Pairing**: The receiver taps **"Show QR Code"**, the sender taps **"Scan QR"**, and the devices connect immediately without waiting for discovery or typing any IP addresses.
+- 🔒 **100% Private & P2P**: Direct Wi-Fi / Local Network transfer using hardware-backed ECDH key agreement and AES-256-GCM authenticated encryption. Works 100% offline with zero internet required.
+- 🎨 **Claymorphic UI**: Beautiful pastel cards, high contrast, extra-large touch targets, and tactile clay buttons designed for effortless use by all ages.
+- 📄 **Prominent File Cards**: Shows exact file names, sizes, and file type badges (photos, videos, music, documents, archives, APKs).
+- 🚀 **High Speed & Resumable**: High-throughput raw socket streaming with length-prefixed framing (`DirectProtocol.java`), chunk-level SHA-256 verification, and interrupted transfer resume.
+- 🔄 **Built-in In-App Updates**: Live cache-busting check against GitHub with direct in-app download and installation.
 
 ---
 
@@ -70,7 +81,7 @@ Install the verified release APK and start transferring files instantly:
   <img src="docs/images/settings.png" width="23%" alt="Settings & Updates" />
 </p>
 <p align="center">
-  <em>1. Home Screen with QR options • 2. Instant QR Receiver • 3. Senior-Friendly Send Screen • 4. Settings with Software Updates</em>
+  <em>1. Home Screen with QR Options • 2. Instant QR Receiver • 3. Clean Send Screen • 4. Settings with In-App Updates & IP Copy</em>
 </p>
 
 ---
@@ -79,26 +90,98 @@ Install the verified release APK and start transferring files instantly:
 
 1. **Receiver**: Open NearDrop and tap **Show QR Code to Receive**.
 2. **Sender**: Tap **Scan QR** (from the Home screen or Send screen) and point the camera at the receiver's screen.
-3. The sender device connects in milliseconds and sends the files directly over the high-speed local network!
+3. The sender connects in milliseconds and streams the files directly over the high-speed local network!
 
 ---
 
-## 🚀 Installation & Build
+## 🏗️ System Architecture
 
-### Install on Device
-1. Download [`neardrop-v0.2.0.apk`](https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.0.apk) on your Android device (Android 8.0+).
-2. Tap the downloaded file to install and launch NearDrop.
+```
+┌────────────────────────────────────────────────────────┐
+│                   NearDrop Ecosystem                   │
+├──────────────────────────┬─────────────────────────────┤
+│   Android Client App     │   FastAPI Cloud Backend     │
+│   (Java + Kotlin Compose)│   (neardrop-backend/)       │
+├──────────────────────────┼─────────────────────────────┤
+│ • Local Wi-Fi Direct     │ • JWT Auth & Refresh        │
+│ • Local-Only Hotspot     │ • Device Token Registration │
+│ • Direct TCP Sockets     │ • 8-Char Session Codes      │
+│ • AES-256-GCM Encryption │ • Transfer Event History    │
+│ • Room Local Database    │ • Offline Metadata Sync     │
+│ • In-App Update Engine   │ • Zero File Bytes Transit   │
+└──────────────────────────┴─────────────────────────────┘
+```
 
-### Build from Source
+---
+
+## 🚀 Building & Running
+
+### 1. Android Application
+
+#### Prerequisites
+- Android Studio Ladybug or newer
+- JDK 17 or 21
+- Android SDK 34 (minSdk 26, Android 8.0+)
+
+#### Install on Device
+1. Download [`neardrop-v0.2.3.apk`](https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.3.apk) directly to your Android device.
+2. Tap the downloaded file to install and open NearDrop.
+
+#### Build from Source
 ```bash
+# Clone the repository
 git clone https://github.com/Kmrr-Gautam/NearDrop.git
 cd NearDrop
 
 # Run test suite
-./gradlew :app:testDebugUnitTest
+./gradlew testDebugUnitTest
 
 # Build debug APK
-./gradlew :app:assembleDebug
+./gradlew assembleDebug
+
+# Build production release APK
+./gradlew assembleRelease
+```
+The compiled APK will be generated at `app/build/outputs/apk/release/`.
+
+---
+
+### 2. FastAPI Backend (`neardrop-backend/`)
+
+#### Prerequisites
+- Python 3.11 or newer
+
+#### Setup & Run
+```bash
+cd neardrop-backend
+
+# Create virtual environment
+python -m venv venv
+# Linux / macOS:
+source venv/bin/activate
+# Windows:
+.\venv\Scripts\activate
+
+# Install pinned dependencies
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+
+# Run database migrations
+alembic upgrade head
+
+# Start Uvicorn development server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+#### Interactive Documentation
+- **Swagger UI**: `http://127.0.0.1:8000/docs`
+- **ReDoc**: `http://127.0.0.1:8000/redoc`
+
+#### Run Backend Tests
+```bash
+pytest
 ```
 
 ---
@@ -107,13 +190,20 @@ cd NearDrop
 
 | Test Suite | Purpose | Status |
 | :--- | :--- | :--- |
-| `TransferLoopbackTest` | P2P streaming, framing, SHA-256 chunks, resume | ✅ 8/8 Passed |
-| `ProtocolTest` | Handshake, message encode/decode, manifest validation | ✅ 8/8 Passed |
-| `SecureHandshakeTest` | ECDH key exchange, AES-256-GCM cipher encryption | ✅ 3/3 Passed |
-| `NearDropDatabaseTest` | Room database history persistence & migrations | ✅ Passed |
+| `TransferLoopbackTest` | P2P streaming, framing, SHA-256 chunks, resume | ✅ Passed |
+| `ProtocolTest` | Handshake, message encode/decode, manifest validation | ✅ Passed |
+| `SecureHandshakeTest` | ECDH key exchange, AES-256-GCM cipher encryption | ✅ Passed |
+| `NearDropDatabaseTest` | Room database history persistence & sync queue | ✅ Passed |
+| `neardrop-backend/tests` | Auth, devices, transfer sessions, offline sync | ✅ Passed |
 
 ---
 
 ## 📄 License
 
 Licensed under the [Apache License, Version 2.0](LICENSE).
+
+---
+
+<p align="center">
+  Crafted with ❤️ by <a href="https://github.com/Kmrr-Gautam">Gautam Kumar</a>
+</p>
