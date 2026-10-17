@@ -73,10 +73,22 @@ fun NearDropApp(vm: MainViewModel) {
             bottomBar = {
                 if (route in tabs.map { it.first }) {
                     ClayBottomNavigation(tabs, route) { r ->
-                        nav.navigate(r) {
-                            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                        if (r != route) {
+                            if (r == "home") {
+                                val popped = nav.popBackStack("home", inclusive = false)
+                                if (!popped) {
+                                    nav.navigate("home") {
+                                        popUpTo("home") { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                }
+                            } else {
+                                nav.navigate(r) {
+                                    popUpTo("home") { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
                         }
                     }
                 }
@@ -84,7 +96,20 @@ fun NearDropApp(vm: MainViewModel) {
         ) { pad ->
             NavHost(nav, start, Modifier.padding(bottom = pad.calculateBottomPadding())) {
                 composable("onboarding") { OnboardingScreen(vm) { nav.navigate("home") { popUpTo("onboarding") { inclusive = true } } } }
-                composable("home") { HomeScreen(vm, onSend = { nav.navigate("send") }, onOpen = { nav.navigate("progress/$it") }, onSettings = { nav.navigate("settings") }) }
+                composable("home") {
+                    HomeScreen(
+                        vm = vm,
+                        onSend = { nav.navigate("send") },
+                        onOpen = { nav.navigate("progress/$it") },
+                        onSettings = {
+                            nav.navigate("settings") {
+                                popUpTo("home") { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
+                }
                 composable("transfers") { TransfersScreen(vm) { nav.navigate("progress/$it") } }
                 composable("settings") { SettingsScreen(vm, onTrusted = { nav.navigate("trusted") }) }
                 composable("trusted") { TrustedScreen(vm) { nav.popBackStack() } }

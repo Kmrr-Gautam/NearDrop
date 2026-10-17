@@ -895,9 +895,10 @@ fun ClayBottomNavigation(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(24.dp))
+                        .clickable(interactionSource = interactionSource, indication = null) { onSelect(route) }
                         .then(
                             if (sel) Modifier.clay(activePillBg, RoundedCornerShape(24.dp), 3.dp)
-                            else Modifier.clickable(interactionSource = interactionSource, indication = null) { onSelect(route) }
+                            else Modifier
                         )
                         .padding(vertical = 10.dp),
                     contentAlignment = Alignment.Center
