@@ -31,17 +31,22 @@ data class AppUpdateInfo(
     val whatsNew: List<String>
 )
 
+data class UpdateCheckResult(
+    val isUpdateAvailable: Boolean,
+    val info: AppUpdateInfo
+)
+
 object UpdateChecker {
-    const val CURRENT_VERSION_CODE = 3
-    const val CURRENT_VERSION_NAME = "0.2.1"
+    const val CURRENT_VERSION_CODE = 4
+    const val CURRENT_VERSION_NAME = "0.2.2"
     private const val UPDATE_URL = "https://raw.githubusercontent.com/Kmrr-Gautam/NearDrop/main/version.json"
 
     val latestWhatsNew = listOf(
-        "🔗 Developer GitHub profile link (@Kmrr-Gautam) added to Settings",
-        "🚀 Fluid file flying animations with dynamic 3D banking and glowing particle trails",
-        "✨ Clean file spotlight cards displaying proper file names, format badges, and exact sizes",
-        "🧹 Streamlined distraction-free transfer UI with real-time transfer stats",
-        "⚡ Instant in-app update checks & system notifications for seamless upgrades"
+        "📱 Instant QR scanner fix: zero-latency camera scanning for PC screens & monitors",
+        "🌐 Show device local IP in Settings About section with 1-tap copy",
+        "⚡ Fixed in-app update checks with live cache busting and instant APK downloads",
+        "🔗 Developer GitHub profile link (@Kmrr-Gautam) in Settings",
+        "🚀 Parabolic file flying animations and modern Claymorphic transfer cards"
     )
 
     fun getInstalledVersionCode(ctx: Context?): Int {
@@ -58,21 +63,25 @@ object UpdateChecker {
         }
     }
 
-    suspend fun check(ctx: Context? = null): Result<AppUpdateInfo?> = withContext(Dispatchers.IO) {
+    suspend fun checkUpdate(ctx: Context? = null): Result<UpdateCheckResult> = withContext(Dispatchers.IO) {
         val installedCode = getInstalledVersionCode(ctx)
         runCatching {
-            val conn = (URL(UPDATE_URL).openConnection() as HttpURLConnection).apply {
-                connectTimeout = 6000
-                readTimeout = 6000
+            val urlWithBuster = "$UPDATE_URL?nocache=${System.currentTimeMillis()}"
+            val conn = (URL(urlWithBuster).openConnection() as HttpURLConnection).apply {
+                connectTimeout = 8000
+                readTimeout = 8000
                 requestMethod = "GET"
+                useCaches = false
+                setRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate")
+                setRequestProperty("Pragma", "no-cache")
                 setRequestProperty("User-Agent", "NearDrop-Android/$CURRENT_VERSION_NAME")
             }
             if (conn.responseCode == 200) {
                 val text = conn.inputStream.bufferedReader().use { it.readText() }
                 val json = JSONObject(text)
-                val code = json.optInt("versionCode", 1)
-                val name = json.optString("versionName", "0.2.0")
-                val url = json.optString("releaseUrl", "https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.0.apk")
+                val code = json.optInt("versionCode", CURRENT_VERSION_CODE)
+                val name = json.optString("versionName", CURRENT_VERSION_NAME)
+                val url = json.optString("releaseUrl", "https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v$name.apk")
                 val whatsNewArr = json.optJSONArray("whatsNew")
                 val notes = mutableListOf<String>()
                 if (whatsNewArr != null) {
@@ -81,10 +90,20 @@ object UpdateChecker {
                     }
                 }
                 val info = AppUpdateInfo(code, name, url, notes.ifEmpty { latestWhatsNew })
-                if (code > installedCode) info else null
+                UpdateCheckResult(isUpdateAvailable = code > installedCode, info = info)
             } else {
-                null
+                throw IllegalStateException("GitHub responded with HTTP ${conn.responseCode}")
             }
+        }
+    }
+
+    suspend fun check(ctx: Context? = null): Result<AppUpdateInfo?> = withContext(Dispatchers.IO) {
+        val res = checkUpdate(ctx)
+        if (res.isSuccess) {
+            val checkRes = res.getOrThrow()
+            if (checkRes.isUpdateAvailable) Result.success(checkRes.info) else Result.success(null)
+        } else {
+            Result.failure(res.exceptionOrNull() ?: Exception("Unknown error"))
         }
     }
 }

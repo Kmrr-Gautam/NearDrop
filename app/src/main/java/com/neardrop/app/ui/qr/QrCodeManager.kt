@@ -4,9 +4,9 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
-import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import com.google.zxing.*
+import com.google.zxing.common.GlobalHistogramBinarizer
 import com.google.zxing.common.HybridBinarizer
 import com.google.zxing.qrcode.QRCodeWriter
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
@@ -38,23 +38,47 @@ object QrCodeManager {
     }
 
     /**
-     * Parses receiver connection details from JSON or URI string.
+     * Parses receiver connection details from JSON, URI string, plain IP, or web payloads.
      */
     fun parseReceiverInfo(rawText: String): ReceiverQrInfo? {
         val text = rawText.trim()
+        if (text.isEmpty()) return null
         try {
-            // Try JSON format
+            // 1. JSON format (Android native or PC Web)
             if (text.startsWith("{")) {
                 val json = JSONObject(text)
-                val ip = json.optString("ip").takeIf { it.isNotBlank() } ?: return null
+                val ip = json.optString("ip").takeIf { it.isNotBlank() }
+                    ?: json.optString("host").takeIf { it.isNotBlank() }
                 val port = json.optInt("port", 45454)
                 val name = json.optString("name").takeIf { it.isNotBlank() } ?: "Receiver"
                 val fp = json.optString("fp").takeIf { it.isNotBlank() }
-                return ReceiverQrInfo(ip, port, name, fp)
+                if (ip != null) {
+                    return ReceiverQrInfo(ip, port, name, fp)
+                }
+
+                // If JSON only has room code (WebRTC room from PC)
+                val room = json.optString("room").takeIf { it.isNotBlank() }
+                if (room != null) {
+                    return ReceiverQrInfo(ip = "room:$room", port = 0, name = name, fingerprint = room)
+                }
             }
 
-            // Try URI format: neardrop://connect?ip=...&port=...&name=...
-            if (text.startsWith("neardrop://")) {
+            // 2. HTTP / HTTPS URL format (e.g. http://192.168.1.15:45455 or http://192.168.1.15:45454)
+            if (text.startsWith("http://", ignoreCase = true) || text.startsWith("https://", ignoreCase = true)) {
+                val uri = URI(text)
+                val host = uri.host
+                if (!host.isNullOrBlank()) {
+                    val port = if (uri.port > 0) uri.port else if (text.startsWith("https", ignoreCase = true)) 443 else 80
+                    val query = uri.query ?: ""
+                    val name = if (query.contains("name=")) {
+                        query.substringAfter("name=").substringBefore("&")
+                    } else "Web ($host)"
+                    return ReceiverQrInfo(host, port, name)
+                }
+            }
+
+            // 3. NearDrop custom URI format: neardrop://connect?ip=...&port=...&name=...
+            if (text.startsWith("neardrop://", ignoreCase = true)) {
                 val uri = URI(text)
                 val query = uri.query ?: ""
                 val params = query.split("&").associate { param ->
@@ -70,12 +94,20 @@ object QrCodeManager {
                 return ReceiverQrInfo(ip, port, name, fp)
             }
 
-            // Plain ip or ip:port format
-            if (text.contains(".") && !text.contains(" ")) {
-                val parts = text.split(":")
-                val ip = parts[0].trim()
-                val port = if (parts.size > 1) parts[1].trim().toIntOrNull() ?: 45454 else 45454
-                return ReceiverQrInfo(ip, port, "Device ($ip)")
+            // 4. Plain IP or IP:Port format (e.g. 192.168.1.15:45454 or 192.168.1.15)
+            val ipRegex = Regex("""\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b""")
+            val match = ipRegex.find(text)
+            if (match != null) {
+                val foundIp = match.value
+                val portRegex = Regex("""(?::|/|: )(\d{2,5})""")
+                val portMatch = portRegex.find(text.substring(match.range.last))
+                val foundPort = portMatch?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 45454
+                return ReceiverQrInfo(foundIp, foundPort, "Device ($foundIp)")
+            }
+
+            // 5. 6-digit room code format (e.g. 582914)
+            if (text.matches(Regex("""^\d{6}$"""))) {
+                return ReceiverQrInfo(ip = "room:$text", port = 0, name = "Web Room ($text)", fingerprint = text)
             }
         } catch (_: Exception) {
             // ignore parsing failures
@@ -112,7 +144,9 @@ object QrCodeManager {
     }
 
     /**
-     * Analyzes an ImageProxy from CameraX to detect a QR code.
+     * Analyzes an ImageProxy from CameraX to detect a QR code accurately.
+     * Corrects row stride padding, handles rotation (portrait/landscape),
+     * and utilizes dual binarizers for optimal detection on PC monitors.
      */
     @OptIn(ExperimentalGetImage::class)
     fun decodeFromImageProxy(imageProxy: ImageProxy): String? {
@@ -120,38 +154,90 @@ object QrCodeManager {
         val planes = image.planes
         if (planes.isEmpty()) return null
 
-        val buffer = planes[0].buffer
-        val bytes = ByteArray(buffer.remaining())
-        buffer.get(bytes)
-
+        val yPlane = planes[0]
+        val yBuffer = yPlane.buffer
+        val rowStride = yPlane.rowStride
         val width = imageProxy.width
         val height = imageProxy.height
 
+        // Extract tightly packed Y plane bytes without rowStride padding
+        val yBytes = ByteArray(width * height)
+        val origPos = yBuffer.position()
+        for (y in 0 until height) {
+            yBuffer.position(origPos + y * rowStride)
+            yBuffer.get(yBytes, y * width, width)
+        }
+        yBuffer.position(origPos)
+
+        val rotation = imageProxy.imageInfo.rotationDegrees
+
+        // Rotate if necessary to match display orientation
+        val (finalData, finalWidth, finalHeight) = when (rotation) {
+            90 -> {
+                val rotated = ByteArray(width * height)
+                for (y in 0 until height) {
+                    for (x in 0 until width) {
+                        rotated[x * height + (height - y - 1)] = yBytes[y * width + x]
+                    }
+                }
+                Triple(rotated, height, width)
+            }
+            180 -> {
+                val rotated = ByteArray(width * height)
+                val total = width * height
+                for (i in 0 until total) {
+                    rotated[total - i - 1] = yBytes[i]
+                }
+                Triple(rotated, width, height)
+            }
+            270 -> {
+                val rotated = ByteArray(width * height)
+                for (y in 0 until height) {
+                    for (x in 0 until width) {
+                        rotated[(width - x - 1) * height + y] = yBytes[y * width + x]
+                    }
+                }
+                Triple(rotated, height, width)
+            }
+            else -> Triple(yBytes, width, height)
+        }
+
         val source = PlanarYUVLuminanceSource(
-            bytes,
-            width,
-            height,
+            finalData,
+            finalWidth,
+            finalHeight,
             0,
             0,
-            width,
-            height,
+            finalWidth,
+            finalHeight,
             false
         )
 
-        val binaryBitmap = BinaryBitmap(HybridBinarizer(source))
         val reader = MultiFormatReader().apply {
             val hints = EnumMap<DecodeHintType, Any>(DecodeHintType::class.java).apply {
                 put(DecodeHintType.POSSIBLE_FORMATS, listOf(BarcodeFormat.QR_CODE))
                 put(DecodeHintType.CHARACTER_SET, "UTF-8")
+                put(DecodeHintType.TRY_HARDER, java.lang.Boolean.TRUE)
             }
             setHints(hints)
         }
 
+        // Try standard HybridBinarizer first
+        val hybridBitmap = BinaryBitmap(HybridBinarizer(source))
+        try {
+            val result = reader.decodeWithState(hybridBitmap)
+            return result.text
+        } catch (_: Exception) {
+            // Fall through to GlobalHistogramBinarizer
+        } finally {
+            reader.reset()
+        }
+
+        // Fallback to GlobalHistogramBinarizer for bright PC monitors & screen glare
         return try {
-            val result = reader.decodeWithState(binaryBitmap)
+            val globalBitmap = BinaryBitmap(GlobalHistogramBinarizer(source))
+            val result = reader.decodeWithState(globalBitmap)
             result.text
-        } catch (_: NotFoundException) {
-            null
         } catch (_: Exception) {
             null
         } finally {

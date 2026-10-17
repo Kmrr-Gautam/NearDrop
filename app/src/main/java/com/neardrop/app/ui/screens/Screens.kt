@@ -1,7 +1,11 @@
 package com.neardrop.app.ui.screens
 
+import android.content.Context
+import android.content.ClipboardManager
+import android.content.ClipData
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import android.provider.Settings as AndroidSettings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -125,14 +129,12 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
     val receiving by vm.receiving.collectAsState()
     val localIp by vm.localIp.collectAsState()
     val port by vm.listenPort.collectAsState()
-    val webPort by vm.webBridgePort.collectAsState()
     var permsMissing by remember { mutableStateOf(Perms.missing(ctx)) }
     val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permsMissing = Perms.missing(ctx); vm.startDiscovery() }
     val fps = trusted.map { it.fingerprint }.toSet()
     var detailRecord by remember { mutableStateOf<TransferRecord?>(null) }
     var showReceiveQr by remember { mutableStateOf(false) }
     var showScanQr by remember { mutableStateOf(false) }
-    var showPcConnect by remember { mutableStateOf(false) }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
@@ -209,22 +211,13 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
                 }
                 if (receiving) {
                     Spacer(Modifier.height(12.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ClayButton(
-                            text = "Receive QR",
-                            onClick = { showReceiveQr = true },
-                            modifier = Modifier.weight(1f).height(46.dp),
-                            icon = Icons.Default.QrCode2,
-                            color = Clay.Mint
-                        )
-                        ClayButton(
-                            text = "PC Connect",
-                            onClick = { showPcConnect = true },
-                            modifier = Modifier.weight(1f).height(46.dp),
-                            icon = Icons.Default.Computer,
-                            color = Clay.Sky
-                        )
-                    }
+                    ClayButton(
+                        text = "Show QR Code to Receive",
+                        onClick = { showReceiveQr = true },
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        icon = Icons.Default.QrCode2,
+                        color = Clay.Mint
+                    )
                 }
             }
         }
@@ -290,7 +283,14 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
         QrScannerDialog(
             onDismiss = { showScanQr = false },
             onScanned = { info ->
-                vm.addManualDevice(info.ip, info.port, info.name)
+                if (info.ip.startsWith("room:")) {
+                    val room = info.ip.removePrefix("room:")
+                    Toast.makeText(ctx, "Scanned PC Web Room #$room", Toast.LENGTH_LONG).show()
+                } else {
+                    val dev = vm.addManualDevice(info.ip, info.port, info.name)
+                    vm.selectedDevice.value = dev
+                    Toast.makeText(ctx, "Connected to ${dev.name} (${dev.host})", Toast.LENGTH_SHORT).show()
+                }
                 showScanQr = false
                 onSend()
             }
@@ -305,14 +305,6 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
             onDismiss = { showReceiveQr = false }
         )
     }
-    if (showPcConnect) {
-        com.neardrop.app.ui.qr.PcConnectDialog(
-            deviceName = settings.deviceName,
-            ipAddress = localIp ?: "127.0.0.1",
-            port = if (webPort > 0) webPort else 45455,
-            onDismiss = { showPcConnect = false }
-        )
-    }
 }
 
 
@@ -320,6 +312,7 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
 // ------------------------------------------------------------------ Send (Screen D)
 @Composable
 fun SendScreen(vm: MainViewModel, onBack: () -> Unit, onSent: (String) -> Unit) {
+    val ctx = LocalContext.current
     val items by vm.selectedItems.collectAsState()
     val device by vm.selectedDevice.collectAsState()
     val devices by vm.devices.collectAsState()
@@ -444,9 +437,13 @@ fun SendScreen(vm: MainViewModel, onBack: () -> Unit, onSent: (String) -> Unit) 
         QrScannerDialog(
             onDismiss = { showScanQr = false },
             onScanned = { info ->
-                vm.addManualDevice(info.ip, info.port, info.name)
-                vm.devices.value.firstOrNull { it.host == info.ip && it.port == info.port }?.let {
-                    vm.selectedDevice.value = it
+                if (info.ip.startsWith("room:")) {
+                    val room = info.ip.removePrefix("room:")
+                    Toast.makeText(ctx, "Scanned PC Web Room #$room", Toast.LENGTH_LONG).show()
+                } else {
+                    val dev = vm.addManualDevice(info.ip, info.port, info.name)
+                    vm.selectedDevice.value = dev
+                    Toast.makeText(ctx, "Connected to ${dev.name} (${dev.host})", Toast.LENGTH_SHORT).show()
                 }
                 showScanQr = false
             }
@@ -1279,6 +1276,7 @@ fun SettingsScreen(vm: MainViewModel, onTrusted: () -> Unit) {
     val ctx = LocalContext.current
     val internet by vm.hasInternet.collectAsState()
     val port by vm.listenPort.collectAsState()
+    val localIp by vm.localIp.collectAsState()
     var rename by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf(s.deviceName) }
     var isCheckingUpdates by remember { mutableStateOf(false) }
@@ -1446,7 +1444,7 @@ fun SettingsScreen(vm: MainViewModel, onTrusted: () -> Unit) {
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text("Check for updates", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
-                        Text("NearDrop v0.2.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                        Text("NearDrop v${UpdateChecker.CURRENT_VERSION_NAME}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                     }
                     Surface(
                         color = if (isDark) Clay.DarkMint else Clay.Mint,
@@ -1516,17 +1514,21 @@ fun SettingsScreen(vm: MainViewModel, onTrusted: () -> Unit) {
                             if (!isCheckingUpdates) {
                                 scope.launch {
                                     isCheckingUpdates = true
-                                    val result = UpdateChecker.check(ctx)
+                                    val result = UpdateChecker.checkUpdate(ctx)
                                     isCheckingUpdates = false
                                     val now = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date())
                                     lastCheckedTime = "Today at $now"
-                                    val info = result.getOrNull()
-                                    if (info != null) {
-                                        foundUpdate = info
-                                        updateStatusMessage = "Update available: v${info.versionName}"
-                                        com.neardrop.app.service.TransferNotifications.notifyUpdate(ctx, info)
+                                    val checkRes = result.getOrNull()
+                                    if (checkRes != null) {
+                                        if (checkRes.isUpdateAvailable) {
+                                            foundUpdate = checkRes.info
+                                            updateStatusMessage = "Update available: v${checkRes.info.versionName}"
+                                            com.neardrop.app.service.TransferNotifications.notifyUpdate(ctx, checkRes.info)
+                                        } else {
+                                            updateStatusMessage = "You're on the latest version (v${checkRes.info.versionName})"
+                                        }
                                     } else {
-                                        updateStatusMessage = "You're on the latest version (v${UpdateChecker.CURRENT_VERSION_NAME})"
+                                        updateStatusMessage = "Failed to reach update server"
                                     }
                                 }
                             }
@@ -1580,7 +1582,7 @@ fun SettingsScreen(vm: MainViewModel, onTrusted: () -> Unit) {
                 )
             }
 
-            // Diagnostics
+            // About & Network Info
             ClayCard(Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
@@ -1590,12 +1592,53 @@ fun SettingsScreen(vm: MainViewModel, onTrusted: () -> Unit) {
                         Icon(Icons.Default.Info, null, tint = if (isDark) Clay.DarkLavenderAccent else Clay.Charcoal, modifier = Modifier.size(20.dp))
                     }
                     Spacer(Modifier.width(12.dp))
-                    Text("Diagnostics", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                    Column(Modifier.weight(1f)) {
+                        Text("About & Network", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                        Text("NearDrop v${UpdateChecker.CURRENT_VERSION_NAME}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                    }
                 }
+                Spacer(Modifier.height(12.dp))
+
+                // Highlighted IP row with Copy button
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Device Local IP", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                            Text(
+                                localIp ?: "Not connected to Wi-Fi",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (localIp != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                            )
+                        }
+                        if (localIp != null) {
+                            ClayButton(
+                                text = "Copy IP",
+                                onClick = {
+                                    val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    clipboard.setPrimaryClip(ClipData.newPlainText("NearDrop IP", localIp))
+                                    Toast.makeText(ctx, "IP copied: $localIp", Toast.LENGTH_SHORT).show()
+                                },
+                                color = Clay.Sky,
+                                modifier = Modifier.height(36.dp)
+                            )
+                        }
+                    }
+                }
+
                 Spacer(Modifier.height(10.dp))
+                Text("Listening port: ${if (port > 0) port else 45454}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
                 Text("Device ID: ${vm.fingerprint.take(16)}…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
-                Text("Listening port: ${if (port > 0) port else "not listening"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
-                Text("Internet: ${if (internet) "available (unused)" else "none"} · Wi-Fi Direct: ${if (vm.p2pSupported) "supported" else "unsupported"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
+                Text("Internet: ${if (internet) "connected" else "offline"} · Wi-Fi Direct: ${if (vm.p2pSupported) "supported" else "unsupported"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
             }
 
             // Developer GitHub Profile

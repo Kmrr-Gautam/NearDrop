@@ -1,12 +1,12 @@
 {
-  "versionCode": 3,
-  "versionName": "0.2.1",
-  "releaseUrl": "https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.1.apk",
+  "versionCode": 4,
+  "versionName": "0.2.2",
+  "releaseUrl": "https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.2.apk",
   "whatsNew": [
-    "🔗 Developer GitHub profile link (@Kmrr-Gautam) added to Settings",
-    "🚀 Fluid file flying animations with dynamic 3D banking and glowing particle trails",
-    "✨ Clean file spotlight cards displaying proper file names, format badges, and exact sizes",
-    "🧹 Streamlined distraction-free transfer UI with real-time transfer stats",
-    "⚡ Instant in-app update checks & system notifications for seamless upgrades"
+    "📱 Instant QR scanner fix: zero-latency camera scanning for PC screens & monitors",
+    "🌐 Show device local IP in Settings About section with 1-tap copy",
+    "⚡ Fixed in-app update checks with live cache busting and instant APK downloads",
+    "🔗 Developer GitHub profile link (@Kmrr-Gautam) in Settings",
+    "🚀 Parabolic file flying animations and modern Claymorphic transfer cards"
   ]
 }

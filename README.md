@@ -43,26 +43,6 @@ Install the verified release APK and start transferring files instantly:
 * 🧹 **Zero Clutter**: Completely eliminated redundant cards and repetitive text walls for a modern, focused user experience.
 * 📲 **Instant Receiving Screen**: Automatically transitions into the progress page as soon as incoming files are accepted.
 * 🔄 **Live In-App Updates**: Built-in GitHub update checker displays a "What's New" popup with one-tap APK installation.
-* 💻 **NearDrop Web (Claymorphism for PC)**: Exact same tactile **Claymorphism** UI for PC supporting **PC to Mobile (Web ⇄ APK)**, **Mobile to PC (APK ⇄ Web)**, and **Web-to-Web** P2P streaming with zero cloud!
-
----
-
-## 💻 NearDrop Web (PC & Browser)
-
-NearDrop now features a dedicated, high-performance website with the exact same **Claymorphism** aesthetic as the Android app:
-
-* 📱 **Web to APK (PC to Mobile)**: Send files from any PC browser directly into the Android app's downloads folder.
-* 💻 **APK to Web (Mobile to PC)**: Send photos, videos, and documents from the Android app straight to your PC screen.
-* 🌐 **Web to Web (Universal P2P)**: Transfer files between two PCs, Macs, or mobile browsers with zero software installation using encrypted WebRTC DataChannels.
-* 🎨 **Exact Claymorphism Aesthetic**: Tactile rounded cards, pastel Clay chips, 3D parabolic flying file animations, and floating bottom navigation.
-
-### Quick Start (Web)
-```bash
-cd web
-npm install
-npm run dev
-```
-*Or simply tap **"PC Connect"** in the Android app and open the displayed IP (e.g. `http://192.168.1.15:45455`) in any PC browser!*
 
 ---
 

@@ -35,7 +35,6 @@ class NearDropEngine(private val app: Context) {
     val ble = BleBeacon(app, scope)
     val wifiDirect = WifiDirectManager(app)
     val network = NetworkMonitor(app)
-    val webBridge = com.neardrop.app.web.WebBridgeServer(app, this, scope)
 
     val progress = MutableStateFlow<Map<String, TransferProgress>>(emptyMap())
     val incoming = MutableStateFlow<IncomingUi?>(null)
@@ -43,8 +42,6 @@ class NearDropEngine(private val app: Context) {
     val listenPort = MutableStateFlow(0)
     val manualDevices = MutableStateFlow<List<DiscoveredDevice>>(emptyList())
     val localIp get() = network.localIp
-    val webBridgeRunning = webBridge.isRunning
-    val webBridgePort = webBridge.port
     val devices: StateFlow<List<DiscoveredDevice>> = combine(nsd.devices, wifiDirect.groupHost, manualDevices) { lan, p2p, manual ->
         val list = ArrayList<DiscoveredDevice>(lan.size + (if (p2p != null) 1 else 0) + manual.size)
         list.addAll(lan)
@@ -63,7 +60,6 @@ class NearDropEngine(private val app: Context) {
     private var server: ServerSocket? = null
     private var acceptJob: Job? = null
     @Volatile private var current = Settings()
-    val currentDeviceName: String get() = current.deviceName
 
     val partialRoot = File(app.getExternalFilesDir(null) ?: app.filesDir, "partial")
     val receivedDir = File(app.getExternalFilesDir(null) ?: app.filesDir, "NearDrop")
@@ -112,7 +108,6 @@ class NearDropEngine(private val app: Context) {
         catch (e: IOException) { ServerSocket(0) }
         server = ss; listenPort.value = ss.localPort; receiving.value = true
         nsd.register(current.deviceName, deviceType(), identity.fingerprint, ss.localPort)
-        webBridge.start()
         acceptJob = scope.launch {
             while (isActive && !ss.isClosed) {
                 val s = try { ss.accept() } catch (e: IOException) { break }
@@ -124,7 +119,6 @@ class NearDropEngine(private val app: Context) {
     @Synchronized private fun stopServer() {
         nsd.unregister()
         runCatching { server?.close() }; server = null
-        webBridge.stop()
         acceptJob?.cancel(); acceptJob = null
         receiving.value = false; listenPort.value = 0
     }
