@@ -29,16 +29,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlin.math.atan2
 import com.neardrop.app.core.*
 import com.neardrop.app.data.TransferRecord
 import com.neardrop.app.transfer.SendItem
@@ -46,6 +51,7 @@ import com.neardrop.app.ui.MainViewModel
 import com.neardrop.app.ui.components.*
 import com.neardrop.app.ui.theme.Clay
 import com.neardrop.app.ui.theme.clay
+import com.neardrop.app.update.*
 import com.neardrop.app.transfer.IncomingRequest
 import com.neardrop.app.transfer.IncomingUi
 import java.text.DateFormat
@@ -460,26 +466,78 @@ private fun SelectedRow(i: SendItem, onRemove: () -> Unit) {
     }
 }
 
+// ------------------------------------------------------------------ File Visual Meta
+data class FileVisualMeta(
+    val icon: ImageVector,
+    val ext: String,
+    val lightBg: Color,
+    val darkBg: Color,
+    val lightAccent: Color,
+    val darkAccent: Color
+)
+
+fun getFileVisualMeta(fileName: String): FileVisualMeta {
+    val cleanName = fileName.substringAfterLast('/').substringAfterLast('\\')
+    val ext = cleanName.substringAfterLast('.', "").uppercase().take(4).ifBlank { "FILE" }
+    val lower = cleanName.lowercase()
+    return when {
+        lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") ||
+        lower.endsWith(".webp") || lower.endsWith(".gif") || lower.endsWith(".heic") || lower.endsWith(".svg") ->
+            FileVisualMeta(Icons.Default.Image, ext, Color(0xFFF3E8FF), Color(0xFF33204E), Color(0xFF7C3AED), Color(0xFFC084FC))
+        lower.endsWith(".mp4") || lower.endsWith(".mkv") || lower.endsWith(".mov") ||
+        lower.endsWith(".avi") || lower.endsWith(".webm") ->
+            FileVisualMeta(Icons.Default.Videocam, ext, Color(0xFFE0F2FE), Color(0xFF142E46), Color(0xFF0284C7), Color(0xFF38BDF8))
+        lower.endsWith(".mp3") || lower.endsWith(".wav") || lower.endsWith(".flac") ||
+        lower.endsWith(".aac") || lower.endsWith(".m4a") ->
+            FileVisualMeta(Icons.Default.MusicNote, ext, Color(0xFFFEF3C7), Color(0xFF422E14), Color(0xFFD97706), Color(0xFFFBBF24))
+        lower.endsWith(".zip") || lower.endsWith(".rar") || lower.endsWith(".7z") ||
+        lower.endsWith(".tar") || lower.endsWith(".gz") ->
+            FileVisualMeta(Icons.Default.Archive, ext, Color(0xFFFFEDD5), Color(0xFF432516), Color(0xFFEA580C), Color(0xFFFB923C))
+        lower.endsWith(".pdf") || lower.endsWith(".doc") || lower.endsWith(".docx") ||
+        lower.endsWith(".txt") || lower.endsWith(".rtf") ->
+            FileVisualMeta(Icons.Default.Description, ext, Color(0xFFEDE9FE), Color(0xFF28214E), Color(0xFF4F46E5), Color(0xFF818CF8))
+        lower.endsWith(".apk") ->
+            FileVisualMeta(Icons.Default.Android, ext, Color(0xFFDCFCE7), Color(0xFF143B23), Color(0xFF16A34A), Color(0xFF4ADE80))
+        else ->
+            FileVisualMeta(Icons.Default.InsertDriveFile, ext, Color(0xFFF1F5F9), Color(0xFF242533), Color(0xFF475569), Color(0xFF94A3B8))
+    }
+}
+
 // ------------------------------------------------------------------ Incoming (Screen E)
 @Composable
-fun IncomingDialog(vm: MainViewModel, ui: IncomingUi) {
+fun IncomingDialog(vm: MainViewModel, ui: IncomingUi, onAccepted: ((String) -> Unit)? = null) {
     val r: IncomingRequest = ui.request
     var trust by remember(r.transferId) { mutableStateOf(false) }
     val known = vm.trusted.collectAsState().value.any { it.fingerprint == r.peerFingerprint }
     val isDark = isDark()
-    val t = rememberInfiniteTransition(label = "dialogPulse")
-    val pulseScale by t.animateFloat(0.95f, 1.05f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "p")
 
     val firstFile = r.files.firstOrNull()?.path?.substringAfterLast('/')?.substringAfterLast('\\') ?: "File"
     val displayName = if (r.files.size > 1) "$firstFile (+${r.files.size - 1} more)" else firstFile
+    val fileMeta = getFileVisualMeta(firstFile)
 
-    ClayDialog("Incoming file", onDismiss = { vm.respond(false, false) },
-        confirm = { ClayButton("ACCEPT", { vm.respond(true, trust) }, color = Clay.Mint, icon = Icons.Default.Check) },
-        dismiss = { ClayButton("DECLINE", { vm.respond(false, false) }, color = Clay.Peach, icon = Icons.Default.Close) }) {
+    val t = rememberInfiniteTransition(label = "dialogPulse")
+    val pulseScale by t.animateFloat(0.96f, 1.05f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "p")
+
+    ClayDialog("Incoming File", onDismiss = { vm.respond(false, false) },
+        confirm = {
+            ClayButton(
+                "ACCEPT",
+                {
+                    vm.respond(true, trust)
+                    onAccepted?.invoke(r.transferId)
+                },
+                color = Clay.Mint,
+                icon = Icons.Default.Check
+            )
+        },
+        dismiss = {
+            ClayButton("DECLINE", { vm.respond(false, false) }, color = Clay.Peach, icon = Icons.Default.Close)
+        }
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 Modifier
-                    .size(44.dp)
+                    .size(46.dp)
                     .graphicsLayer { scaleX = pulseScale; scaleY = pulseScale }
                     .clay(if (isDark) Clay.DarkSky else Clay.Sky, CircleShape, 2.dp),
                 contentAlignment = Alignment.Center
@@ -488,33 +546,44 @@ fun IncomingDialog(vm: MainViewModel, ui: IncomingUi) {
             }
             Spacer(Modifier.width(12.dp))
             Column {
-                Text("${r.senderName} wants to send you:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                Text(if (known) "Known device" else "Unknown sender", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f))
+                Text(r.senderName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                Text(if (known) "Known device · Ready to send" else "Nearby device wants to send you a file", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f))
             }
         }
-        Spacer(Modifier.height(12.dp))
+
+        Spacer(Modifier.height(14.dp))
+
+        // Clean spotlight file card inside dialog
         ClayCard(Modifier.fillMaxWidth(), color = if (isDark) Color(0xFF26213D) else Color.White) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    when {
-                        displayName.endsWith(".jpg", true) || displayName.endsWith(".jpeg", true) || displayName.endsWith(".png", true) -> Icons.Default.Image
-                        displayName.endsWith(".mp4", true) || displayName.endsWith(".mkv", true) -> Icons.Default.Videocam
-                        displayName.endsWith(".mp3", true) || displayName.endsWith(".wav", true) -> Icons.Default.MusicNote
-                        else -> Icons.Default.InsertDriveFile
-                    },
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(26.dp)
-                )
-                Spacer(Modifier.width(10.dp))
-                Column {
+                Box(
+                    Modifier
+                        .size(44.dp)
+                        .clay(if (isDark) fileMeta.darkBg else fileMeta.lightBg, RoundedCornerShape(12.dp), 2.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        fileMeta.icon,
+                        contentDescription = null,
+                        tint = if (isDark) fileMeta.darkAccent else fileMeta.lightAccent,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
                     Text(displayName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text("${r.files.size} file(s) · ${Fmt.bytes(r.totalBytes)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                    Text("${r.files.size} file(s) · ${Fmt.bytes(r.totalBytes)}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
-        Spacer(Modifier.height(8.dp))
-        Text("Security code: ${r.sas}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+
+        Spacer(Modifier.height(10.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Shield, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Security code: ${r.sas}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+        }
+
         if (!known) {
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -530,151 +599,200 @@ fun IncomingDialog(vm: MainViewModel, ui: IncomingUi) {
 fun ProgressScreen(vm: MainViewModel, id: String, onBack: () -> Unit) {
     val list by vm.progress.collectAsState()
     val trusted by vm.trusted.collectAsState()
+    val settings by vm.settings.collectAsState()
     val p = list.firstOrNull { it.id == id }
     val isDark = isDark()
+
+    val screenTitle = if (p?.direction == Direction.RECEIVE) "Receiving File" else "Transferring File"
+
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        ClayTopBar("Transfer", onBack)
-        if (p == null) { ClayEmptyState(Icons.Default.CheckCircle, "Nothing active", "This transfer has finished. See Transfers for history."); return }
+        ClayTopBar(screenTitle, onBack)
+
+        if (p == null) {
+            ClayEmptyState(
+                Icons.Default.CheckCircle,
+                "Transfer completed",
+                "This transfer has finished. Check the Transfers tab for details."
+            ) {
+                ClayButton("Done", onBack, Modifier.padding(top = 8.dp), color = Clay.Mint)
+            }
+            return
+        }
+
+        val rawName = p.currentFile.substringAfterLast('/').substringAfterLast('\\')
+        val fileName = if (rawName.isNotBlank()) rawName else if (p.fileCount > 1) "${p.fileCount} files" else "File"
+        val fileMeta = getFileVisualMeta(fileName)
+        val isCompleted = p.status == TransferStatus.COMPLETED
+        val isTransferring = p.status == TransferStatus.TRANSFERRING || p.status == TransferStatus.VERIFYING || p.status == TransferStatus.CONNECTING
+
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            TransferHero(p)
-            ClayProgressCard(p, {}, null)
+            // 1. Dynamic File Flying Hero Animation
+            FileFlyingHero(
+                p = p,
+                fileMeta = fileMeta,
+                localDeviceName = settings.deviceName,
+                isDark = isDark
+            )
 
-            // Minimal, senior-friendly status card
+            // 2. Focused Spotlight File Card: Proper File Name & Size, Clean Metrics, Zero Clutter
             ClayCard(Modifier.fillMaxWidth()) {
-                val isCompleted = p.status == TransferStatus.COMPLETED
-                val isInterrupted = p.status == TransferStatus.INTERRUPTED
-                val isFailed = p.status == TransferStatus.FAILED || p.status == TransferStatus.REJECTED
-
-                val rawName = p.currentFile.substringAfterLast('/').substringAfterLast('\\')
-                val fileName = if (rawName.isNotBlank()) rawName else if (p.fileCount > 1) "${p.fileCount} files" else "File"
-
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        when {
-                            isCompleted -> Icons.Default.CheckCircle
-                            isInterrupted -> Icons.Default.Warning
-                            isFailed -> Icons.Default.Error
-                            else -> Icons.Default.Sync
-                        },
-                        contentDescription = null,
-                        tint = when {
-                            isCompleted -> if (isDark) Clay.DarkMintAccent else Color(0xFF1B5E20)
-                            isInterrupted -> if (isDark) Clay.DarkPeachAccent else Color(0xFFE65100)
-                            isFailed -> MaterialTheme.colorScheme.error
-                            else -> MaterialTheme.colorScheme.primary
-                        },
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Column {
+                    Box(
+                        Modifier
+                            .size(54.dp)
+                            .clay(if (isDark) fileMeta.darkBg else fileMeta.lightBg, RoundedCornerShape(16.dp), 3.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            fileMeta.icon,
+                            contentDescription = null,
+                            tint = if (isDark) fileMeta.darkAccent else fileMeta.lightAccent,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Box(
+                            Modifier
+                                .align(Alignment.BottomEnd)
+                                .offset(x = 4.dp, y = 4.dp)
+                                .background(if (isDark) Clay.DarkLavenderAccent else Clay.LavenderDeep, RoundedCornerShape(4.dp))
+                                .padding(horizontal = 4.dp, vertical = 1.dp)
+                        ) {
+                            Text(
+                                fileMeta.ext,
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 9.sp
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.width(14.dp))
+
+                    Column(Modifier.weight(1f)) {
                         Text(
-                            when (p.status) {
-                                TransferStatus.COMPLETED -> "✓ Transfer Complete!"
-                                TransferStatus.TRANSFERRING -> "Transferring file..."
-                                TransferStatus.VERIFYING -> "Checking file safety..."
-                                TransferStatus.CONNECTING -> "Connecting..."
-                                TransferStatus.AWAITING_APPROVAL -> "Waiting for approval..."
-                                TransferStatus.INTERRUPTED -> "Transfer Interrupted"
-                                TransferStatus.REJECTED -> "Declined by other device"
-                                TransferStatus.CANCELLED -> "Cancelled"
-                                TransferStatus.FAILED -> "Transfer Failed"
-                            },
+                            text = fileName,
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium,
-                            color = when {
-                                isCompleted -> if (isDark) Clay.DarkMintAccent else Color(0xFF1B5E20)
-                                isInterrupted -> if (isDark) Clay.DarkPeachAccent else Color(0xFFE65100)
-                                else -> MaterialTheme.colorScheme.onSurface
-                            }
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
+                        Spacer(Modifier.height(3.dp))
                         Text(
-                            (if (p.direction == Direction.SEND) "Sent to " else "Received from ") + p.peerName,
+                            text = if (isTransferring) {
+                                "${Fmt.bytes(p.bytesDone)} of ${Fmt.bytes(p.totalBytes)} (${(p.fraction * 100).toInt()}%)"
+                            } else {
+                                Fmt.bytes(p.totalBytes) + if (p.fileCount > 1) " · ${p.fileCount} files" else ""
+                            },
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
 
                 Spacer(Modifier.height(14.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-                Spacer(Modifier.height(14.dp))
 
-                // Prominently show the file name
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        when {
-                            fileName.endsWith(".jpg", true) || fileName.endsWith(".jpeg", true) || fileName.endsWith(".png", true) || fileName.endsWith(".webp", true) -> Icons.Default.Image
-                            fileName.endsWith(".mp4", true) || fileName.endsWith(".mkv", true) || fileName.endsWith(".mov", true) -> Icons.Default.Videocam
-                            fileName.endsWith(".mp3", true) || fileName.endsWith(".wav", true) -> Icons.Default.MusicNote
-                            else -> Icons.Default.InsertDriveFile
-                        },
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Column {
-                        Text(
-                            text = fileName,
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.bodyLarge,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "Size: ${Fmt.bytes(p.totalBytes)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
+                val animatedFraction by animateFloatAsState(
+                    targetValue = p.fraction.coerceIn(0f, 1f),
+                    animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
+                    label = "transferFraction"
+                )
+
+                LinearProgressIndicator(
+                    progress = { animatedFraction },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(50)),
+                    color = when {
+                        isCompleted -> if (isDark) Clay.DarkMintAccent else Color(0xFF1B5E20)
+                        p.status == TransferStatus.FAILED || p.status == TransferStatus.REJECTED -> MaterialTheme.colorScheme.error
+                        else -> if (isDark) Color(0xFF9D8BFF) else Clay.LavenderDeep
+                    },
+                    trackColor = if (isDark) Color(0xFF141220) else Color.White.copy(alpha = 0.6f)
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                // Compact metric chips row
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (isTransferring && p.speedBps > 0) {
+                        ClayChip("⚡ ${Fmt.speed(p.speedBps)}", true, color = if (isDark) Clay.DarkSky else Clay.Sky)
+                    }
+                    if (isTransferring && p.etaSeconds != null) {
+                        ClayChip("⏱ ${Fmt.eta(p.etaSeconds)}", true, color = if (isDark) Clay.DarkLavender else Clay.Lavender)
+                    }
+                    if (p.fileCount > 1) {
+                        ClayChip("📄 ${p.fileIndex + 1} of ${p.fileCount}", true, color = if (isDark) Clay.DarkLavender else Clay.Lavender)
+                    }
+                    if (p.sas != null) {
+                        ClayChip("🔒 Code ${p.sas}", true, color = if (isDark) Color(0xFF2C2442) else Color.White)
                     }
                 }
 
                 if (isCompleted && p.direction == Direction.RECEIVE) {
+                    Spacer(Modifier.height(12.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.CheckCircle, null, tint = if (isDark) Clay.DarkMintAccent else Color(0xFF1B5E20), modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            "Saved to NearDrop folder",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isDark) Clay.DarkMintAccent else Color(0xFF1B5E20)
+                        )
+                    }
+                } else if (p.status.terminal && p.status != TransferStatus.COMPLETED) {
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        "📁 Saved to your device's NearDrop folder.",
-                        fontWeight = FontWeight.SemiBold,
+                        p.message ?: when (p.status) {
+                            TransferStatus.INTERRUPTED -> "Transfer was interrupted"
+                            TransferStatus.REJECTED -> "Declined by other device"
+                            TransferStatus.CANCELLED -> "Transfer cancelled"
+                            else -> "Transfer failed"
+                        },
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (isDark) Clay.DarkMintAccent else Color(0xFF1B5E20)
-                    )
-                }
-
-                p.message?.let {
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (isCompleted) LocalContentColor.current else MaterialTheme.colorScheme.error
-                    )
-                }
-
-                p.sas?.let {
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        "Security code: $it",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
             }
 
-            // Big, senior-friendly action buttons
-            if (p.status == TransferStatus.COMPLETED) {
+            // 3. Clean, Senior-Friendly Actions
+            if (isCompleted) {
                 ClayButton(
                     "Done",
                     { vm.dismiss(p.id); onBack() },
-                    Modifier.fillMaxWidth().height(52.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
                     color = Clay.Mint,
                     icon = Icons.Default.Check
                 )
+
+                val fp = p.peerFingerprint
+                if (fp != null && trusted.none { it.fingerprint == fp }) {
+                    TextButton(
+                        onClick = { vm.trustPeer(fp, p.peerName) },
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    ) {
+                        Icon(Icons.Default.Verified, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Remember & trust ${p.peerName}")
+                    }
+                }
             } else if (p.status.terminal) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (vm.canRetry(p.id) && p.status != TransferStatus.REJECTED) {
                         ClayButton(
                             "Try Again",
                             { vm.retry(p.id) },
-                            Modifier.weight(1f).height(52.dp),
+                            Modifier
+                                .weight(1f)
+                                .height(52.dp),
                             icon = Icons.Default.Refresh,
                             color = Clay.Lavender
                         )
@@ -682,7 +800,9 @@ fun ProgressScreen(vm: MainViewModel, id: String, onBack: () -> Unit) {
                     ClayButton(
                         "Close",
                         { vm.dismiss(p.id); onBack() },
-                        Modifier.weight(1f).height(52.dp),
+                        Modifier
+                            .weight(1f)
+                            .height(52.dp),
                         color = Clay.Peach
                     )
                 }
@@ -690,205 +810,367 @@ fun ProgressScreen(vm: MainViewModel, id: String, onBack: () -> Unit) {
                 ClayButton(
                     "Cancel Transfer",
                     { vm.cancel(p.id) },
-                    Modifier.fillMaxWidth().height(52.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
                     color = Clay.Peach,
                     icon = Icons.Default.Close
-                )
-            }
-
-            val fp = p.peerFingerprint
-            if (fp != null && trusted.none { it.fingerprint == fp }) {
-                ClayButton(
-                    "Trust this device for next time",
-                    { vm.trustPeer(fp, p.peerName) },
-                    Modifier.fillMaxWidth(),
-                    color = Clay.Sky,
-                    icon = Icons.Default.Verified
                 )
             }
         }
     }
 }
 
+// ------------------------------------------------------------------ Flying File Hero Animation
 @Composable
-private fun TransferHero(p: TransferProgress) {
-    val isDark = isDark()
-    val t = rememberInfiniteTransition(label = "hero")
-    val isTransferring = p.status == TransferStatus.TRANSFERRING
+private fun FileFlyingHero(
+    p: TransferProgress,
+    fileMeta: FileVisualMeta,
+    localDeviceName: String,
+    isDark: Boolean
+) {
+    val t = rememberInfiniteTransition(label = "flightAnim")
+    val isTransferring = p.status == TransferStatus.TRANSFERRING || p.status == TransferStatus.VERIFYING || p.status == TransferStatus.CONNECTING
     val isCompleted = p.status == TransferStatus.COMPLETED
 
-    val haloScale by t.animateFloat(1f, 1.25f, infiniteRepeatable(tween(1400, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "halo")
-    val haloAlpha by t.animateFloat(0.6f, 0.1f, infiniteRepeatable(tween(1400, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "haloA")
-    val fileBob by t.animateFloat(-6f, 6f, infiniteRepeatable(tween(1200, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "bob")
-    val streamPhase by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1000, easing = LinearEasing)), label = "stream")
+    val flightProgress by t.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "flightProgress"
+    )
 
-    ClayCard(Modifier.fillMaxWidth()) {
-        Row(
-            Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+    val pulseScale by t.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.25f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1100, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
+
+    val pulseAlpha by t.animateFloat(
+        initialValue = 0.65f,
+        targetValue = 0.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1100, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseAlpha"
+    )
+
+    val celebrationBob by t.animateFloat(
+        initialValue = -5f,
+        targetValue = 5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "celebBob"
+    )
+
+    val leftDeviceName = if (p.direction == Direction.RECEIVE) p.peerName else localDeviceName.ifBlank { "This Device" }
+    val rightDeviceName = if (p.direction == Direction.RECEIVE) localDeviceName.ifBlank { "This Device" } else p.peerName
+    val leftRole = if (p.direction == Direction.RECEIVE) "Sender" else "Sending"
+    val rightRole = if (p.direction == Direction.RECEIVE) "Receiving" else "Receiver"
+
+    ClayCard(
+        Modifier.fillMaxWidth(),
+        color = if (isDark) Color(0xFF1B182B) else Clay.Lavender.copy(alpha = 0.22f)
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(185.dp),
+            contentAlignment = Alignment.Center
         ) {
-            // Sender avatar
-            Box(contentAlignment = Alignment.Center) {
-                if (isTransferring && p.direction == Direction.SEND) {
-                    Box(
-                        Modifier
-                            .size(56.dp)
-                            .graphicsLayer {
-                                scaleX = haloScale
-                                scaleY = haloScale
-                                alpha = haloAlpha
-                            }
-                            .clip(CircleShape)
-                            .background(Color(0xFF5B45C9))
+            // Background Canvas: Flight Arc, Trailing Particle Sparks, and Target Pulse
+            Canvas(Modifier.fillMaxSize()) {
+                val startX = size.width * 0.16f
+                val endX = size.width * 0.84f
+                val baseY = size.height * 0.58f
+                val arcPeakHeight = size.height * 0.44f
+
+                val flightPath = Path().apply {
+                    moveTo(startX, baseY)
+                    quadraticTo(
+                        (startX + endX) / 2f,
+                        baseY - arcPeakHeight * 1.7f,
+                        endX,
+                        baseY
                     )
                 }
-                Box(
-                    Modifier
-                        .size(48.dp)
-                        .clay(if (isDark) Clay.DarkLavender else Clay.Lavender, CircleShape, 4.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        if (p.direction == Direction.SEND) Icons.Default.PhoneAndroid else deviceIcon(DeviceType.PHONE),
-                        contentDescription = null,
-                        tint = if (isDark) Clay.DarkLavenderAccent else Clay.Charcoal,
-                        modifier = Modifier.size(24.dp)
+
+                if (isCompleted) {
+                    drawPath(
+                        path = flightPath,
+                        brush = Brush.horizontalGradient(
+                            listOf(
+                                if (isDark) Clay.DarkMintAccent else Color(0xFF10B981),
+                                if (isDark) Clay.DarkMintAccent else Color(0xFF059669)
+                            )
+                        ),
+                        style = Stroke(width = 3.5.dp.toPx(), cap = StrokeCap.Round)
                     )
-                }
-            }
-
-            // Animated transfer stream bridge in center
-            Box(
-                Modifier
-                    .weight(1f)
-                    .height(64.dp)
-                    .padding(horizontal = 6.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Canvas(Modifier.fillMaxWidth().height(28.dp)) {
-                    val y = size.height / 2
-                    val startX = 0f
-                    val endX = size.width
-
-                    drawLine(
-                        color = if (isDark) Color(0xFF382F5E) else Color(0xFFC9B8FF).copy(alpha = 0.5f),
-                        start = Offset(startX, y),
-                        end = Offset(endX, y),
-                        strokeWidth = 3.5.dp.toPx(),
-                        cap = StrokeCap.Round
+                    drawCircle(
+                        color = (if (isDark) Clay.DarkMintAccent else Color(0xFF10B981)).copy(alpha = 0.25f),
+                        radius = 28.dp.toPx(),
+                        center = Offset(endX, baseY)
+                    )
+                } else {
+                    // Curved dashed trajectory
+                    drawPath(
+                        path = flightPath,
+                        color = if (isDark) Color(0xFF5B45C9).copy(alpha = 0.45f) else Color(0xFFC9B8FF).copy(alpha = 0.75f),
+                        style = Stroke(
+                            width = 2.5.dp.toPx(),
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f), 0f),
+                            cap = StrokeCap.Round
+                        )
                     )
 
                     if (isTransferring) {
-                        val packetCount = 4
-                        for (i in 0 until packetCount) {
-                            val fraction = (streamPhase + i.toFloat() / packetCount) % 1f
-                            val actualFraction = if (p.direction == Direction.SEND) fraction else (1f - fraction)
-                            val packetX = startX + actualFraction * (endX - startX)
+                        // Trailing glowing particles behind the flying file
+                        val tProgress = flightProgress
+                        for (i in 1..5) {
+                            val trailT = tProgress - i * 0.035f
+                            if (trailT in 0.02f..0.98f) {
+                                val px = startX + trailT * (endX - startX)
+                                val py = baseY - 4 * arcPeakHeight * trailT * (1f - trailT)
+                                val alpha = (1f - i / 6f) * 0.75f
+                                val radius = (4.5f - i * 0.6f).coerceAtLeast(1.5f).dp.toPx()
+                                drawCircle(
+                                    color = (if (isDark) fileMeta.darkAccent else fileMeta.lightAccent).copy(alpha = alpha),
+                                    radius = radius,
+                                    center = Offset(px, py)
+                                )
+                            }
+                        }
+
+                        // Absorption ripple when file nears receiver
+                        if (tProgress > 0.82f) {
+                            val rippleFrac = (tProgress - 0.82f) / 0.18f
                             drawCircle(
-                                color = if (isDark) Color(0xFF9D8BFF) else Color(0xFF5B45C9),
-                                radius = 4.dp.toPx(),
-                                center = Offset(packetX, y)
+                                color = (if (isDark) Clay.DarkMintAccent else Color(0xFF10B981)).copy(alpha = (1f - rippleFrac) * 0.5f),
+                                radius = (20.dp + 16.dp * rippleFrac).toPx(),
+                                center = Offset(endX, baseY)
                             )
                         }
                     }
                 }
+            }
 
-                // Floating file badge
-                Box(
-                    Modifier
-                        .graphicsLayer {
-                            translationY = if (isTransferring) fileBob else 0f
-                        }
-                        .clay(
-                            if (isCompleted) (if (isDark) Clay.DarkMint else Clay.Mint)
-                            else (if (isDark) Color(0xFF28233C) else Clay.Cream),
-                            RoundedCornerShape(14.dp),
-                            3.dp
-                        )
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+            // Flying Files Layer
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                val startXPercent = 0.16f
+                val endXPercent = 0.84f
+                val baseYPercent = 0.58f
+                val arcHeightPercent = 0.44f
+
+                if (isTransferring) {
+                    val t = flightProgress
+                    val currentXFraction = startXPercent + t * (endXPercent - startXPercent)
+                    val currentYFraction = baseYPercent - 4 * arcHeightPercent * t * (1f - t)
+
+                    val dx = (endXPercent - startXPercent) * maxWidth.value
+                    val dy = -4f * arcHeightPercent * (1f - 2f * t) * maxHeight.value
+                    val tiltAngle = (atan2(dy.toDouble(), dx.toDouble()) * (180.0 / Math.PI)).toFloat()
+
+                    val xPos = maxWidth * currentXFraction - 20.dp
+                    val yPos = maxHeight * currentYFraction - 20.dp
+
+                    // 1. Primary Flying File Card
+                    Box(
+                        Modifier
+                            .offset(x = xPos, y = yPos)
+                            .graphicsLayer {
+                                rotationZ = tiltAngle
+                            }
+                            .clay(
+                                if (isDark) fileMeta.darkBg else fileMeta.lightBg,
+                                RoundedCornerShape(12.dp),
+                                4.dp
+                            )
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            when {
-                                isCompleted -> Icons.Default.CheckCircle
-                                p.status == TransferStatus.VERIFYING -> Icons.Default.VerifiedUser
-                                p.currentFile.endsWith(".jpg", true) || p.currentFile.endsWith(".png", true) || p.currentFile.endsWith(".webp", true) -> Icons.Default.Image
-                                p.currentFile.endsWith(".mp4", true) || p.currentFile.endsWith(".mkv", true) -> Icons.Default.Videocam
-                                p.currentFile.endsWith(".mp3", true) || p.currentFile.endsWith(".wav", true) -> Icons.Default.MusicNote
-                                p.currentFile.endsWith(".zip", true) || p.currentFile.endsWith(".tar", true) -> Icons.Default.Archive
-                                else -> Icons.Default.InsertDriveFile
-                            },
+                            fileMeta.icon,
                             contentDescription = null,
-                            tint = if (isCompleted) (if (isDark) Clay.DarkMintAccent else Color(0xFF1B5E20))
-                            else (if (isDark) Color.White else Clay.Charcoal),
-                            modifier = Modifier.size(18.dp)
+                            tint = if (isDark) fileMeta.darkAccent else fileMeta.lightAccent,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    // 2. Secondary Mini Trailing Packet (continuous streaming stream)
+                    val secondaryT = (t + 0.5f) % 1f
+                    val secXFraction = startXPercent + secondaryT * (endXPercent - startXPercent)
+                    val secYFraction = baseYPercent - 4 * arcHeightPercent * secondaryT * (1f - secondaryT)
+                    val secXPos = maxWidth * secXFraction - 10.dp
+                    val secYPos = maxHeight * secYFraction - 10.dp
+
+                    Box(
+                        Modifier
+                            .offset(x = secXPos, y = secYPos)
+                            .size(20.dp)
+                            .clay(
+                                if (isDark) Color(0xFF3B2F5C) else Color.White,
+                                CircleShape,
+                                2.dp
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(if (isDark) fileMeta.darkAccent else fileMeta.lightAccent)
+                        )
+                    }
+                } else if (isCompleted) {
+                    // Floating celebration checkmark at the peak of the arc
+                    Box(
+                        Modifier
+                            .align(Alignment.Center)
+                            .offset(y = (-14).dp + celebrationBob.dp)
+                            .size(46.dp)
+                            .clay(
+                                if (isDark) Clay.DarkMint else Clay.Mint,
+                                CircleShape,
+                                4.dp
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            tint = if (isDark) Clay.DarkMintAccent else Color(0xFF1B5E20),
+                            modifier = Modifier.size(26.dp)
                         )
                     }
                 }
             }
 
-            // Receiver avatar
-            Box(contentAlignment = Alignment.Center) {
-                if (isTransferring && p.direction == Direction.RECEIVE) {
-                    Box(
-                        Modifier
-                            .size(56.dp)
-                            .graphicsLayer {
-                                scaleX = haloScale
-                                scaleY = haloScale
-                                alpha = haloAlpha
-                            }
-                            .clip(CircleShape)
-                            .background(Color(0xFF38B88B))
+            // Left Device Node (Sender)
+            Box(
+                Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 14.dp, bottom = 12.dp)
+                    .width(90.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(contentAlignment = Alignment.Center) {
+                        if (isTransferring) {
+                            Box(
+                                Modifier
+                                    .size(54.dp)
+                                    .graphicsLayer {
+                                        scaleX = pulseScale
+                                        scaleY = pulseScale
+                                        alpha = pulseAlpha
+                                    }
+                                    .clip(CircleShape)
+                                    .background(if (isDark) Color(0xFF5B45C9) else Color(0xFFC9B8FF))
+                            )
+                        }
+                        Box(
+                            Modifier
+                                .size(48.dp)
+                                .clay(if (isDark) Clay.DarkLavender else Clay.Lavender, CircleShape, 3.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                if (p.direction == Direction.SEND) Icons.Default.PhoneAndroid else deviceIcon(DeviceType.PHONE),
+                                contentDescription = null,
+                                tint = if (isDark) Clay.DarkLavenderAccent else Clay.Charcoal,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = leftDeviceName,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = leftRole,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
                     )
                 }
-                Box(
-                    Modifier
-                        .size(48.dp)
-                        .clay(
-                            if (isCompleted) (if (isDark) Clay.DarkMint else Clay.Mint)
-                            else (if (isDark) Clay.DarkSky else Clay.Sky),
-                            CircleShape,
-                            4.dp
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        if (isCompleted) Icons.Default.Check else Icons.Default.Devices,
-                        contentDescription = null,
-                        tint = if (isDark) (if (isCompleted) Clay.DarkMintAccent else Clay.DarkSkyAccent) else Clay.Charcoal,
-                        modifier = Modifier.size(24.dp)
+            }
+
+            // Right Device Node (Receiver)
+            Box(
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 14.dp, bottom = 12.dp)
+                    .width(90.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(contentAlignment = Alignment.Center) {
+                        if (isTransferring || isCompleted) {
+                            Box(
+                                Modifier
+                                    .size(54.dp)
+                                    .graphicsLayer {
+                                        scaleX = if (isCompleted) 1.15f else pulseScale
+                                        scaleY = if (isCompleted) 1.15f else pulseScale
+                                        alpha = if (isCompleted) 0.35f else pulseAlpha
+                                    }
+                                    .clip(CircleShape)
+                                    .background(if (isCompleted) Color(0xFF10B981) else Color(0xFF38B88B))
+                            )
+                        }
+                        Box(
+                            Modifier
+                                .size(48.dp)
+                                .clay(
+                                    if (isCompleted) (if (isDark) Clay.DarkMint else Clay.Mint)
+                                    else (if (isDark) Clay.DarkSky else Clay.Sky),
+                                    CircleShape,
+                                    3.dp
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                if (isCompleted) Icons.Default.Check
+                                else if (p.direction == Direction.RECEIVE) Icons.Default.PhoneAndroid
+                                else deviceIcon(DeviceType.PHONE),
+                                contentDescription = null,
+                                tint = if (isDark) (if (isCompleted) Clay.DarkMintAccent else Clay.DarkSkyAccent) else Clay.Charcoal,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = rightDeviceName,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = if (isCompleted) "Completed" else rightRole,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isCompleted) (if (isDark) Clay.DarkMintAccent else Color(0xFF1B5E20)) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                        fontWeight = if (isCompleted) FontWeight.Bold else FontWeight.Normal
                     )
                 }
             }
         }
-
-        Spacer(Modifier.height(10.dp))
-        val rawName = p.currentFile.substringAfterLast('/').substringAfterLast('\\')
-        val fileName = if (rawName.isNotBlank()) rawName else if (p.fileCount > 1) "${p.fileCount} files" else "Preparing files…"
-        Text(
-            fileName,
-            fontWeight = FontWeight.ExtraBold,
-            style = MaterialTheme.typography.titleLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        Text(
-            (if (p.direction == Direction.SEND) "Sending to " else "Receiving from ") + p.peerName,
-            fontWeight = FontWeight.Medium,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-        )
-        Text(
-            "File ${minOf(p.fileIndex + 1, maxOf(p.fileCount, 1))} of ${maxOf(p.fileCount, 1)} · ${Fmt.bytes(p.totalBytes)}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
-        )
     }
 }
 
@@ -980,7 +1262,8 @@ fun SettingsScreen(vm: MainViewModel, onTrusted: () -> Unit) {
     var rename by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf(s.deviceName) }
     var isCheckingUpdates by remember { mutableStateOf(false) }
-    var updateStatusMessage by remember { mutableStateOf<String?>("You're on the latest version (v0.1.0)") }
+    var updateStatusMessage by remember { mutableStateOf<String?>("You're on the latest version (v0.2.0)") }
+    var foundUpdate by remember { mutableStateOf<AppUpdateInfo?>(null) }
     var lastCheckedTime by remember { mutableStateOf("Just now") }
     var autoCheckUpdates by remember { mutableStateOf(true) }
     var showReleaseNotes by remember { mutableStateOf(false) }
@@ -1143,7 +1426,7 @@ fun SettingsScreen(vm: MainViewModel, onTrusted: () -> Unit) {
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text("Check for updates", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
-                        Text("NearDrop v0.1.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                        Text("NearDrop v0.2.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                     }
                     Surface(
                         color = if (isDark) Clay.DarkMint else Clay.Mint,
@@ -1213,11 +1496,17 @@ fun SettingsScreen(vm: MainViewModel, onTrusted: () -> Unit) {
                             if (!isCheckingUpdates) {
                                 scope.launch {
                                     isCheckingUpdates = true
-                                    delay(1200)
+                                    val result = UpdateChecker.check()
                                     isCheckingUpdates = false
-                                    updateStatusMessage = "You're on the latest version (v0.1.0)"
                                     val now = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date())
                                     lastCheckedTime = "Today at $now"
+                                    val info = result.getOrNull()
+                                    if (info != null) {
+                                        foundUpdate = info
+                                        updateStatusMessage = "Update available: v${info.versionName}"
+                                    } else {
+                                        updateStatusMessage = "You're on the latest version (v0.2.0)"
+                                    }
                                 }
                             }
                         },
@@ -1288,16 +1577,19 @@ fun SettingsScreen(vm: MainViewModel, onTrusted: () -> Unit) {
                 Text("Internet: ${if (internet) "available (unused)" else "none"} · Wi-Fi Direct: ${if (vm.p2pSupported) "supported" else "unsupported"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
             }
 
-            Text("NearDrop 0.1.0 · protocol v${Proto.VERSION}", Modifier.fillMaxWidth().padding(vertical = 4.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            Text("NearDrop 0.2.0 · protocol v${Proto.VERSION}", Modifier.fillMaxWidth().padding(vertical = 4.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
         }
     }
     if (rename) ClayDialog("Device name", { rename = false },
         confirm = { TextButton({ vm.setName(newName); rename = false }) { Text("Save") } }, dismiss = { TextButton({ rename = false }) { Text("Cancel") } }) {
         OutlinedTextField(newName, { newName = it.take(32) }, singleLine = true)
     }
+    foundUpdate?.let { info ->
+        UpdateDialog(info = info, onDismiss = { foundUpdate = null })
+    }
     if (showReleaseNotes) {
         ClayDialog(
-            title = "What's new in v0.1.0",
+            title = "What's new in v0.2.0",
             onDismiss = { showReleaseNotes = false },
             confirm = {
                 TextButton(onClick = { showReleaseNotes = false }) {
@@ -1306,11 +1598,11 @@ fun SettingsScreen(vm: MainViewModel, onTrusted: () -> Unit) {
             }
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("• Senior-friendly interface with large buttons and clear text", style = MaterialTheme.typography.bodyMedium)
-                Text("• Prominent file name display on every transfer screen", style = MaterialTheme.typography.bodyMedium)
-                Text("• Fast direct Wi-Fi and Local Network file sharing", style = MaterialTheme.typography.bodyMedium)
-                Text("• Zero cloud or third-party servers: 100% private P2P", style = MaterialTheme.typography.bodyMedium)
-                Text("• Manual IP connection for testing and isolated networks", style = MaterialTheme.typography.bodyMedium)
+                UpdateChecker.latestWhatsNew.forEach { note ->
+                    Row(modifier = Modifier.padding(vertical = 2.dp), verticalAlignment = Alignment.Top) {
+                        Text(note, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
             }
         }
     }

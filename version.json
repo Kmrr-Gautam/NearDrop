@@ -1,0 +1,12 @@
+{
+  "versionCode": 2,
+  "versionName": "0.2.0",
+  "releaseUrl": "https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.0.apk",
+  "whatsNew": [
+    "🚀 Fluid file flying animations with dynamic 3D banking and glowing particle trails",
+    "✨ Clean file spotlight cards displaying proper file names, format badges, and exact sizes",
+    "🧹 Removed all cluttered and duplicate cards for a modern, distraction-free transfer UI",
+    "📲 Instant automatic transition to progress screen upon receiving or accepting files",
+    "⚡ Real-time speed chips, remaining time estimation, and senior-friendly one-tap actions"
+  ]
+}

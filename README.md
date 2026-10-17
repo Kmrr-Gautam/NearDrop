@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Kmrr-Gautam/NearDrop/releases"><img src="https://img.shields.io/badge/Release-v0.1.0-blue.svg?style=for-the-badge" alt="Release" /></a>
+  <a href="https://github.com/Kmrr-Gautam/NearDrop/releases"><img src="https://img.shields.io/badge/Release-v0.2.0-blue.svg?style=for-the-badge" alt="Release" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Platform-Android%208.0%2B-green.svg?style=for-the-badge&logo=android" alt="Platform" /></a>
   <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Language-Kotlin%202.0-purple.svg?style=for-the-badge&logo=kotlin" alt="Kotlin" /></a>
   <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4.svg?style=for-the-badge&logo=jetpackcompose" alt="Compose" /></a>
@@ -24,22 +24,33 @@
 Install the verified release APK and start transferring files instantly:
 
 <p align="center">
-  <a href="https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.1.0.apk">
-    <img src="https://img.shields.io/badge/⬇️%20Direct%20Download-NearDrop%20v0.1.0%20APK-2ea44f?style=for-the-badge&logo=android&logoColor=white" height="44" alt="Download APK" />
+  <a href="https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.0.apk">
+    <img src="https://img.shields.io/badge/⬇️%20Direct%20Download-NearDrop%20v0.2.0%20APK-2ea44f?style=for-the-badge&logo=android&logoColor=white" height="44" alt="Download APK" />
   </a>
 </p>
 
-* **Direct Repository Download**: [`release/neardrop-v0.1.0.apk`](https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.1.0.apk) *(18 MB)*
+* **Direct Repository Download**: [`release/neardrop-v0.2.0.apk`](https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.0.apk) *(20 MB)*
 * **GitHub Releases**: [NearDrop Releases](https://github.com/Kmrr-Gautam/NearDrop/releases)
+
+---
+
+## 🌟 What's New in v0.2.0
+
+* 🚀 **Fluid File Flying Animation**: Physics-inspired parabolic Bezier flight trajectory connecting devices with realistic 3D banking, comet stardust trails, and receiver absorption pulses.
+* ✨ **Spotlight File Card**: Clean, prominent typography showing exact file names, vibrant color-coded file badges (Images, Videos, Music, Documents, Archives, APKs), and formatted sizes.
+* 🧹 **Zero Clutter**: Completely eliminated redundant cards and repetitive text walls for a modern, focused user experience.
+* 📲 **Instant Receiving Screen**: Automatically transitions into the progress page as soon as incoming files are accepted.
+* 🔄 **Live In-App Updates**: Built-in GitHub update checker displays a "What's New" popup with one-tap APK installation.
 
 ---
 
 ## ✨ Features
 
 - ⚡ **Instant QR Code Transfer**: The receiver taps **"Show QR Code"**, the sender taps **"Scan QR"**, and the devices connect immediately without waiting for discovery or typing any IP addresses!
+- 🎨 **Animated Parabolic Transfer Flight**: Real-time visual flight paths showing files streaming across devices.
 - 👴 **Senior-Friendly & Minimal**: Designed with tactile pastel clay cards, high contrast, extra-large touch targets, and zero jargon.
-- 📄 **Prominent File Names Everywhere**: Every screen highlights the exact file names, sizes, and file type icons (photos, videos, audio, documents).
-- 🔒 **100% Private & P2P**: Direct Wi-Fi / Local Network transfer using hardware-backed ECDH (Elliptic Curve Diffie-Hellman) key agreement and AES-256-GCM authenticated encryption. No accounts, no cloud relays, no tracking.
+- 📄 **Prominent File Names & Sizes**: Every screen highlights the exact file names, sizes, and file type icons (photos, videos, audio, documents).
+- 🔒 **100% Private & P2P**: Direct Wi-Fi / Local Network transfer using hardware-backed ECDH key agreement and AES-256-GCM authenticated encryption. No accounts, no cloud relays, no tracking.
 - 🔄 **Built-in "Check for Updates"**: Software update check integrated directly into Settings with automatic notifications and release notes.
 - 🚀 **High Speed & Resumable**: High-throughput raw socket streaming with chunk-level SHA-256 verification and interrupted transfer resume.
 
@@ -73,7 +84,7 @@ Install the verified release APK and start transferring files instantly:
 ## 🚀 Installation & Build
 
 ### Install on Device
-1. Download [`neardrop-v0.1.0.apk`](https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.1.0.apk) on your Android device (Android 8.0+).
+1. Download [`neardrop-v0.2.0.apk`](https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.0.apk) on your Android device (Android 8.0+).
 2. Tap the downloaded file to install and launch NearDrop.
 
 ### Build from Source

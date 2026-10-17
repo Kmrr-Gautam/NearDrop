@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
+import com.neardrop.app.core.Direction
 import com.neardrop.app.ui.components.*
 import com.neardrop.app.ui.screens.*
 import kotlinx.coroutines.delay
@@ -25,7 +26,27 @@ fun NearDropApp(vm: MainViewModel) {
     val settings by vm.settings.collectAsState()
     val loaded by vm.settingsLoaded.collectAsState()
     val incoming by vm.incoming.collectAsState()
+    val activeTransfers by vm.progress.collectAsState()
     val nav = rememberNavController()
+
+    var updateInfo by remember { mutableStateOf<com.neardrop.app.update.AppUpdateInfo?>(null) }
+    LaunchedEffect(Unit) {
+        delay(2500)
+        com.neardrop.app.update.UpdateChecker.check().getOrNull()?.let { info ->
+            updateInfo = info
+        }
+    }
+
+    var handledReceiveId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(activeTransfers) {
+        val activeReceive = activeTransfers.firstOrNull { it.direction == Direction.RECEIVE && !it.status.terminal }
+        if (activeReceive != null && activeReceive.id != handledReceiveId) {
+            handledReceiveId = activeReceive.id
+            nav.navigate("progress/${activeReceive.id}") {
+                launchSingleTop = true
+            }
+        }
+    }
 
     var splashDone by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -71,6 +92,23 @@ fun NearDropApp(vm: MainViewModel) {
                 composable("progress/{id}") { ProgressScreen(vm, it.arguments?.getString("id") ?: "") { nav.popBackStack() } }
             }
         }
-        incoming?.let { ui -> IncomingDialog(vm, ui) }
+        incoming?.let { ui ->
+            IncomingDialog(
+                vm = vm,
+                ui = ui,
+                onAccepted = {
+                    val activeReceive = activeTransfers.firstOrNull { it.direction == Direction.RECEIVE }
+                    if (activeReceive != null) {
+                        handledReceiveId = activeReceive.id
+                        nav.navigate("progress/${activeReceive.id}") {
+                            launchSingleTop = true
+                        }
+                    }
+                }
+            )
+        }
+        updateInfo?.let { info ->
+            com.neardrop.app.update.UpdateDialog(info = info, onDismiss = { updateInfo = null })
+        }
     }
 }
