@@ -18,7 +18,6 @@ class NearDropClayApp {
     this.deviceName = localStorage.getItem('neardrop_device_name') || 'Windows PC';
     this.stagedFiles = [];
     this.history = JSON.parse(localStorage.getItem('neardrop_web_history') || '[]');
-    this.stopScannerFn = null;
     this.activeTransfer = null;
 
     this.initElements();
@@ -60,7 +59,7 @@ class NearDropClayApp {
 
     // Buttons on Home
     this.homeSendBtn = document.getElementById('homeSendBtn');
-    this.homeScanQrBtn = document.getElementById('homeScanQrBtn');
+    this.homePairingQrBtn = document.getElementById('homePairingQrBtn');
     this.homeReceiveQrBtn = document.getElementById('homeReceiveQrBtn');
     this.homePcConnectBtn = document.getElementById('homePcConnectBtn');
 
@@ -106,13 +105,6 @@ class NearDropClayApp {
     this.qrModalDoneBtn = document.getElementById('qrModalDoneBtn');
     this.qrDisplayCanvas = document.getElementById('qrDisplayCanvas');
     this.qrModalRoomCode = document.getElementById('qrModalRoomCode');
-
-    this.scannerModal = document.getElementById('scannerModal');
-    this.closeScannerModalBtn = document.getElementById('closeScannerModalBtn');
-    this.scannerCancelBtn = document.getElementById('scannerCancelBtn');
-    this.scannerVideo = document.getElementById('scannerVideo');
-    this.scannerCanvas = document.getElementById('scannerCanvas');
-    this.scannerStatus = document.getElementById('scannerStatus');
 
     this.pcConnectModal = document.getElementById('pcConnectModal');
     this.closePcConnectModalBtn = document.getElementById('closePcConnectModalBtn');
@@ -280,8 +272,8 @@ class NearDropClayApp {
       this.fileInput.click();
     });
 
-    this.homeScanQrBtn.addEventListener('click', () => {
-      this.openQrScanner();
+    this.homePairingQrBtn.addEventListener('click', () => {
+      this.openReceiveQrModal();
     });
 
     this.homeReceiveQrBtn.addEventListener('click', () => {
@@ -344,9 +336,6 @@ class NearDropClayApp {
     // Modals
     this.closeQrModalBtn.addEventListener('click', () => this.qrModal.style.display = 'none');
     this.qrModalDoneBtn.addEventListener('click', () => this.qrModal.style.display = 'none');
-
-    this.closeScannerModalBtn.addEventListener('click', () => this.closeScannerModal());
-    this.scannerCancelBtn.addEventListener('click', () => this.closeScannerModal());
 
     this.closePcConnectModalBtn.addEventListener('click', () => this.pcConnectModal.style.display = 'none');
     this.pcConnectSubmitBtn.addEventListener('click', () => {
@@ -622,55 +611,6 @@ class NearDropClayApp {
       width: 200,
       darkColor: '#0E0D14'
     });
-  }
-
-  openQrScanner() {
-    this.scannerModal.style.display = 'flex';
-    this.scannerStatus.textContent = 'Requesting camera access…';
-
-    this.stopScannerFn = QrHelper.startScanner(
-      this.scannerVideo,
-      this.scannerCanvas,
-      (data) => {
-        this.closeScannerModal();
-        this.handleScannedQr(data);
-      },
-      (err) => {
-        this.scannerStatus.textContent = 'Camera error: ' + (err.message || 'Access denied');
-      }
-    );
-  }
-
-  closeScannerModal() {
-    if (this.stopScannerFn) {
-      this.stopScannerFn();
-      this.stopScannerFn = null;
-    }
-    this.scannerModal.style.display = 'none';
-  }
-
-  handleScannedQr(rawText) {
-    try {
-      if (rawText.startsWith('{')) {
-        const json = JSON.parse(rawText);
-        if (json.ip) {
-          this.lanBridge.connect(json.ip, json.port || 45455);
-          return;
-        }
-        if (json.room) {
-          this.webrtc.connectRoom(json.room, this.deviceName);
-          return;
-        }
-      }
-      if (rawText.startsWith('http://') || rawText.startsWith('https://')) {
-        const url = new URL(rawText);
-        this.lanBridge.connect(url.hostname, url.port || 45455);
-        return;
-      }
-      alert('Scanned QR: ' + rawText);
-    } catch (e) {
-      alert('Error parsing QR: ' + e.message);
-    }
   }
 
   formatSize(bytes) {

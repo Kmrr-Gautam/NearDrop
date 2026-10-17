@@ -709,17 +709,4 @@ input:checked + .clay-slider:before {
 [data-theme="light"] .sun-icon { display: none; }
 [data-theme="light"] .moon-icon { display: block; }
 
-.laser-scanner {
-  position: absolute;
-  left: 10%;
-  right: 10%;
-  height: 2px;
-  background: var(--dark-mint-accent);
-  box-shadow: 0 0 12px var(--dark-mint-accent);
-  animation: laserSweep 2.2s infinite alternate ease-in-out;
-}
 
-@keyframes laserSweep {
-  0% { top: 15%; }
-  100% { top: 85%; }
-}
