@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="100" height="100" alt="NearDrop Logo" style="border-radius: 20%;" />
+  <img src="docs/images/logo.png" width="140" height="140" alt="NearDrop Logo" style="border-radius: 28px;" />
 </p>
 
 <h1 align="center">NearDrop</h1>
 
 <p align="center">
   <strong>Fast, private, and effortless offline file sharing for Android.</strong><br>
-  No accounts • No cloud • No tracking • 100% Peer-to-Peer
+  Instant QR Code Pairing • Zero Cloud • No Tracking • 100% Peer-to-Peer
 </p>
 
 <p align="center">
@@ -21,146 +21,86 @@
 
 ## 📥 Download APK
 
-Get the latest pre-compiled, tested APK and start transferring files immediately:
+Install the verified release APK and start transferring files instantly:
 
 <p align="center">
   <a href="https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.1.0.apk">
-    <img src="https://img.shields.io/badge/⬇️%20Direct%20Download-NearDrop%20v0.1.0%20APK-2ea44f?style=for-the-badge&logo=android&logoColor=white" height="42" alt="Download APK" />
+    <img src="https://img.shields.io/badge/⬇️%20Direct%20Download-NearDrop%20v0.1.0%20APK-2ea44f?style=for-the-badge&logo=android&logoColor=white" height="44" alt="Download APK" />
   </a>
 </p>
 
-* **Direct Repository Download**: [`release/neardrop-v0.1.0.apk`](https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.1.0.apk) *(17.9 MB)*
-* **GitHub Releases**: [NearDrop v0.1.0 Releases](https://github.com/Kmrr-Gautam/NearDrop/releases)
+* **Direct Repository Download**: [`release/neardrop-v0.1.0.apk`](https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.1.0.apk) *(18 MB)*
+* **GitHub Releases**: [NearDrop Releases](https://github.com/Kmrr-Gautam/NearDrop/releases)
 
 ---
 
 ## ✨ Features
 
-- 👴 **Senior-Friendly & Accessible**: Minimal, clutter-free interface with extra-large touch targets, clear high-contrast typography, and intuitive two-button actions ("Send" and "Receive").
-- 📄 **Prominent File Name Display**: The exact file name, format icon (photos, videos, audio, documents), and transfer progress are always clearly visible across every screen.
-- 🔒 **100% Private & P2P**: Direct device-to-device transfers over Wi-Fi/LAN. Protected by ECDH (Elliptic Curve Diffie-Hellman) key exchange and AES-256-GCM authenticated encryption. Zero third-party cloud servers or tracking.
-- ⚡ **High Performance & Resume**: High-speed raw socket streaming with SHA-256 chunk-level integrity verification. Transfers can be safely retried and resumed from verified checkpoints.
-- 🌐 **Flexible Discovery + Direct IP**: Automatic discovery via local network mDNS and Wi-Fi Direct, with full support for manual **Direct IP connection** (`+ Connect by IP`) for cross-subnet and emulator testing.
-- 🔄 **Built-in "Check for Updates"**: Check for new software releases directly inside the Settings screen, complete with automatic update checking and release notes.
-- 🎨 **Claymorphism Aesthetic**: Soft, tactile design system with dynamic light and dark modes tailored for comfortable viewing.
+- ⚡ **Instant QR Code Transfer**: The receiver taps **"Show QR Code"**, the sender taps **"Scan QR"**, and the devices connect immediately without waiting for discovery or typing any IP addresses!
+- 👴 **Senior-Friendly & Minimal**: Designed with tactile pastel clay cards, high contrast, extra-large touch targets, and zero jargon.
+- 📄 **Prominent File Names Everywhere**: Every screen highlights the exact file names, sizes, and file type icons (photos, videos, audio, documents).
+- 🔒 **100% Private & P2P**: Direct Wi-Fi / Local Network transfer using hardware-backed ECDH (Elliptic Curve Diffie-Hellman) key agreement and AES-256-GCM authenticated encryption. No accounts, no cloud relays, no tracking.
+- 🔄 **Built-in "Check for Updates"**: Software update check integrated directly into Settings with automatic notifications and release notes.
+- 🚀 **High Speed & Resumable**: High-throughput raw socket streaming with chunk-level SHA-256 verification and interrupted transfer resume.
 
 ---
 
 ## 📱 Screenshots
 
 <p align="center">
-  <img src="docs/images/home.png" width="30%" alt="Home Screen" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="docs/images/send.png" width="30%" alt="Send Screen" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="docs/images/settings.png" width="30%" alt="Settings & Updates" />
+  <img src="docs/images/home.png" width="23%" alt="Home Screen" />
+  &nbsp;
+  <img src="docs/images/qr_receive.png" width="23%" alt="Receive by QR Code" />
+  &nbsp;
+  <img src="docs/images/send.png" width="23%" alt="Send Files Screen" />
+  &nbsp;
+  <img src="docs/images/settings.png" width="23%" alt="Settings & Updates" />
 </p>
 <p align="center">
-  <em>Left: Home Screen with Senior-Friendly Controls • Center: Send Screen with File Selection • Right: Settings with "Check for Updates"</em>
+  <em>1. Home Screen with QR options • 2. Instant QR Receiver • 3. Senior-Friendly Send Screen • 4. Settings with Software Updates</em>
 </p>
 
 ---
 
-## 🚀 Getting Started
+## ⚡ How to Transfer Files via QR Code
 
-### Installation on Android Device
-
-1. Download the [NearDrop v0.1.0 APK](https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.1.0.apk) on your Android device (Android 8.0 Oreo or higher).
-2. Open the downloaded `.apk` file from your notification bar or file manager.
-3. If prompted, enable **"Allow from this source"** for your browser or file manager.
-4. Tap **Install** and open **NearDrop**.
-
-### Sending Files
-
-1. Make sure both devices are connected to the same Wi-Fi network (or mobile hotspot).
-2. On the receiving device: Open NearDrop and ensure **"Receive Files"** is toggled ON.
-3. On the sending device: Tap **Send Photos & Files**, select the items you wish to transfer, select the recipient device, and tap **Send Now**.
-4. The receiver will see an instant prompt displaying the file name and sender name to **Accept** or **Decline**.
-
-> **Tip for Emulators & Cross-Subnet:** If mDNS multicast is blocked on your router or between an Android Emulator and physical phone, tap **`+ Connect by IP`** and enter the other device's IP address and port (default: `45454`).
+1. **Receiver**: Open NearDrop and tap **Show QR Code to Receive**.
+2. **Sender**: Tap **Scan QR** (from the Home screen or Send screen) and point the camera at the receiver's screen.
+3. The sender device connects in milliseconds and sends the files directly over the high-speed local network!
 
 ---
 
-## 🛠️ Building from Source
+## 🚀 Installation & Build
 
-### Prerequisites
-- **Android Studio**: Koala (2024.1.1) or newer
-- **Java Development Kit**: JDK 17 or JDK 21
-- **Android SDK**: API 34 (Compile & Target)
+### Install on Device
+1. Download [`neardrop-v0.1.0.apk`](https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.1.0.apk) on your Android device (Android 8.0+).
+2. Tap the downloaded file to install and launch NearDrop.
 
-### Command Line Build
-
-Clone the repository and run:
-
+### Build from Source
 ```bash
-# Clone the repository
 git clone https://github.com/Kmrr-Gautam/NearDrop.git
 cd NearDrop
 
-# Run unit tests (JVM)
+# Run test suite
 ./gradlew :app:testDebugUnitTest
 
-# Assemble Debug APK
+# Build debug APK
 ./gradlew :app:assembleDebug
 ```
 
-The compiled APK will be generated at:
-`app/build/outputs/apk/debug/app-debug.apk`
-
 ---
 
-## 🧪 Testing & Verification
+## 🧪 Verified Tests
 
-The codebase includes comprehensive unit and integration test coverage:
-
-| Test Suite | Coverage | Status |
+| Test Suite | Purpose | Status |
 | :--- | :--- | :--- |
-| `TransferLoopbackTest` | P2P streaming, packet framing, chunk verification, resume validation | ✅ 8/8 Passed |
-| `ProtocolTest` | Message encoding/decoding, handshake payloads, manifest parsing | ✅ 8/8 Passed |
-| `SecureHandshakeTest` | ECDH key agreement, AES-256-GCM session key derivation, replay prevention | ✅ 3/3 Passed |
-| `NearDropDatabaseTest` | Room database migrations, record persistence, history tracking | ✅ Passed |
-
-Run the test suite:
-```bash
-./gradlew :app:testDebugUnitTest
-```
-
----
-
-## 🏗️ Architecture & Project Structure
-
-NearDrop is built entirely in modern Kotlin with Jetpack Compose:
-
-```
-NearDrop/
-├── app/src/main/java/com/neardrop/app/
-│   ├── core/          # Protocol models, framing constants, permission handlers
-│   ├── security/      # Android Keystore identity, ECDH key exchange, AES-GCM cipher
-│   ├── transfer/      # NearDropEngine, streaming sender, receiver, resume logic
-│   ├── discovery/     # NetworkMonitor, mDNS advertiser/browser, Wi-Fi Direct
-│   ├── data/          # Room database (history), DataStore preferences
-│   ├── service/       # Foreground service for uninterrupted background transfers
-│   └── ui/
-│       ├── components/ # Claymorphism UI library (ClayCard, ClayButton, ClayDialog)
-│       ├── screens/    # HomeScreen, SendScreen, SettingsScreen, ProgressScreen
-│       └── theme/      # Custom Clay theme with dynamic Light & Dark palettes
-├── docs/              # Protocol specifications, testing guides, screenshots
-└── release/           # Pre-built release APKs for direct installation
-```
-
----
-
-## 🔒 Security & Privacy Notice
-
-NearDrop is built from the ground up on zero-trust local principles:
-- **No telemetry or tracking**: Zero analytics SDKs or remote pings.
-- **No cloud relays**: Files never leave your local Wi-Fi / hotspot network.
-- **Cryptographic authentication**: Device fingerprints are generated from hardware-backed ECC keys.
-- **Explicit consent**: Unrecognized devices require one-tap manual approval before any payload byte is written to storage.
+| `TransferLoopbackTest` | P2P streaming, framing, SHA-256 chunks, resume | ✅ 8/8 Passed |
+| `ProtocolTest` | Handshake, message encode/decode, manifest validation | ✅ 8/8 Passed |
+| `SecureHandshakeTest` | ECDH key exchange, AES-256-GCM cipher encryption | ✅ 3/3 Passed |
+| `NearDropDatabaseTest` | Room database history persistence & migrations | ✅ Passed |
 
 ---
 
 ## 📄 License
 
 Licensed under the [Apache License, Version 2.0](LICENSE).
-Feel free to contribute, open issues, or submit pull requests!

@@ -52,6 +52,7 @@ import java.text.DateFormat
 import java.util.Date
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.neardrop.app.ui.qr.*
 
 // ------------------------------------------------------------------ Onboarding (Screen A)
 @Composable
@@ -122,6 +123,8 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
     val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permsMissing = Perms.missing(ctx); vm.startDiscovery() }
     val fps = trusted.map { it.fingerprint }.toSet()
     var detailRecord by remember { mutableStateOf<TransferRecord?>(null) }
+    var showReceiveQr by remember { mutableStateOf(false) }
+    var showScanQr by remember { mutableStateOf(false) }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
@@ -135,9 +138,7 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val statusText = if (receiving) {
-                    if (localIp != null) "✓ Ready to receive · $localIp" else "✓ Ready to receive"
-                } else "Receiving is off"
+                val statusText = if (receiving) "✓ Ready to receive" else "Receiving is off"
                 ClayChip(statusText, true, color = if (receiving) Clay.Mint else Clay.Peach)
                 if (!internet) ClayChip("Direct P2P", true, color = Clay.Sky)
             }
@@ -167,7 +168,10 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
                     }
                 }
                 Spacer(Modifier.height(14.dp))
-                ClayButton("Send Files", onSend, Modifier.fillMaxWidth().height(48.dp), icon = Icons.Default.Send, color = Clay.Mint)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ClayButton("Send Files", onSend, Modifier.weight(1.1f).height(48.dp), icon = Icons.Default.Send, color = Clay.Mint)
+                    ClayButton("Scan QR", { showScanQr = true }, Modifier.weight(0.9f).height(48.dp), icon = Icons.Default.QrCodeScanner, color = Clay.Lavender)
+                }
             }
         }
         item {
@@ -194,6 +198,16 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
                         )
                     }
                     ClaySwitch(receiving) { vm.setVisibility(if (it) Visibility.EVERYONE else Visibility.OFF) }
+                }
+                if (receiving) {
+                    Spacer(Modifier.height(12.dp))
+                    ClayButton(
+                        text = "Show QR Code to Receive",
+                        onClick = { showReceiveQr = true },
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        icon = Icons.Default.QrCode2,
+                        color = Clay.Mint
+                    )
                 }
             }
         }
@@ -254,6 +268,26 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
             }
         }
     }
+
+    if (showScanQr) {
+        QrScannerDialog(
+            onDismiss = { showScanQr = false },
+            onScanned = { info ->
+                vm.addManualDevice(info.ip, info.port, info.name)
+                showScanQr = false
+                onSend()
+            }
+        )
+    }
+    if (showReceiveQr) {
+        QrReceiverDialog(
+            deviceName = settings.deviceName,
+            ipAddress = localIp ?: "127.0.0.1",
+            port = if (port > 0) port else 45454,
+            fingerprint = vm.fingerprint,
+            onDismiss = { showReceiveQr = false }
+        )
+    }
 }
 
 
@@ -265,6 +299,7 @@ fun SendScreen(vm: MainViewModel, onBack: () -> Unit, onSent: (String) -> Unit) 
     val device by vm.selectedDevice.collectAsState()
     val devices by vm.devices.collectAsState()
     var showIpDialog by remember { mutableStateOf(false) }
+    var showScanQr by remember { mutableStateOf(false) }
     val any = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { vm.addFiles(it) }
     val media = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { vm.addFiles(it) }
     val tree = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { it?.let(vm::addTree) }
@@ -295,10 +330,17 @@ fun SendScreen(vm: MainViewModel, onBack: () -> Unit, onSent: (String) -> Unit) 
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("Recipient Device", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    TextButton({ showIpDialog = true }) {
-                        Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Enter IP")
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        TextButton({ showScanQr = true }) {
+                            Icon(Icons.Default.QrCodeScanner, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Scan QR")
+                        }
+                        TextButton({ showIpDialog = true }) {
+                            Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Enter IP")
+                        }
                     }
                 }
             }
@@ -371,6 +413,19 @@ fun SendScreen(vm: MainViewModel, onBack: () -> Unit, onSent: (String) -> Unit) 
                 modifier = Modifier.fillMaxWidth()
             )
         }
+    }
+
+    if (showScanQr) {
+        QrScannerDialog(
+            onDismiss = { showScanQr = false },
+            onScanned = { info ->
+                vm.addManualDevice(info.ip, info.port, info.name)
+                vm.devices.value.firstOrNull { it.host == info.ip && it.port == info.port }?.let {
+                    vm.selectedDevice.value = it
+                }
+                showScanQr = false
+            }
+        )
     }
 }
 
