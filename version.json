@@ -1,11 +1,11 @@
 {
-  "versionCode": 4,
-  "versionName": "0.2.2",
-  "releaseUrl": "https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.2.apk",
+  "versionCode": 5,
+  "versionName": "0.2.3",
+  "releaseUrl": "https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.3.apk",
   "whatsNew": [
+    "⚡ In-app update downloader: download and install updates seamlessly inside NearDrop without browser redirects",
     "📱 Instant QR scanner fix: zero-latency camera scanning for PC screens & monitors",
     "🌐 Show device local IP in Settings About section with 1-tap copy",
-    "⚡ Fixed in-app update checks with live cache busting and instant APK downloads",
     "🔗 Developer GitHub profile link (@Kmrr-Gautam) in Settings",
     "🚀 Parabolic file flying animations and modern Claymorphic transfer cards"
   ]
