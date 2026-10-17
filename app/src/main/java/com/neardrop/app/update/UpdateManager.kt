@@ -32,16 +32,16 @@ data class AppUpdateInfo(
 )
 
 object UpdateChecker {
-    const val CURRENT_VERSION_CODE = 2
-    const val CURRENT_VERSION_NAME = "0.2.0"
+    const val CURRENT_VERSION_CODE = 3
+    const val CURRENT_VERSION_NAME = "0.2.1"
     private const val UPDATE_URL = "https://raw.githubusercontent.com/Kmrr-Gautam/NearDrop/main/version.json"
 
     val latestWhatsNew = listOf(
+        "🔗 Developer GitHub profile link (@Kmrr-Gautam) added to Settings",
         "🚀 Fluid file flying animations with dynamic 3D banking and glowing particle trails",
         "✨ Clean file spotlight cards displaying proper file names, format badges, and exact sizes",
-        "🧹 Removed all cluttered and duplicate cards for a modern, distraction-free transfer UI",
-        "📲 Instant automatic transition to progress screen upon receiving or accepting files",
-        "⚡ Real-time speed chips, remaining time estimation, and senior-friendly one-tap actions"
+        "🧹 Streamlined distraction-free transfer UI with real-time transfer stats",
+        "⚡ Instant in-app update checks & system notifications for seamless upgrades"
     )
 
     fun getInstalledVersionCode(ctx: Context?): Int {

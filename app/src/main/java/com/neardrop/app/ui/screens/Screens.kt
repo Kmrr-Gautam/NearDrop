@@ -1263,7 +1263,7 @@ fun SettingsScreen(vm: MainViewModel, onTrusted: () -> Unit) {
     var rename by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf(s.deviceName) }
     var isCheckingUpdates by remember { mutableStateOf(false) }
-    var updateStatusMessage by remember { mutableStateOf<String?>("You're on the latest version (v0.2.0)") }
+    var updateStatusMessage by remember { mutableStateOf<String?>("You're on the latest version (v${UpdateChecker.CURRENT_VERSION_NAME})") }
     var foundUpdate by remember { mutableStateOf<AppUpdateInfo?>(null) }
     var lastCheckedTime by remember { mutableStateOf("Just now") }
     var autoCheckUpdates by remember { mutableStateOf(true) }
@@ -1579,7 +1579,35 @@ fun SettingsScreen(vm: MainViewModel, onTrusted: () -> Unit) {
                 Text("Internet: ${if (internet) "available (unused)" else "none"} · Wi-Fi Direct: ${if (vm.p2pSupported) "supported" else "unsupported"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
             }
 
-            Text("NearDrop 0.2.0 · protocol v${Proto.VERSION}", Modifier.fillMaxWidth().padding(vertical = 4.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            // Developer GitHub Profile
+            ClayCard(
+                Modifier.fillMaxWidth(),
+                onClick = {
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Kmrr-Gautam")).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        ctx.startActivity(intent)
+                    } catch (_: Exception) {}
+                }
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(40.dp).clay(if (isDark) Clay.DarkMint else Clay.Mint, CircleShape, 2.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Code, null, tint = if (isDark) Clay.DarkMintAccent else Clay.Charcoal, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Developer GitHub", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                        Text("github.com/Kmrr-Gautam", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+                    }
+                    Icon(Icons.Default.OpenInNew, "Open GitHub Profile", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), modifier = Modifier.size(18.dp))
+                }
+            }
+
+            Text("NearDrop ${UpdateChecker.CURRENT_VERSION_NAME} · protocol v${Proto.VERSION}", Modifier.fillMaxWidth().padding(vertical = 4.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
         }
     }
     if (rename) ClayDialog("Device name", { rename = false },
@@ -1591,7 +1619,7 @@ fun SettingsScreen(vm: MainViewModel, onTrusted: () -> Unit) {
     }
     if (showReleaseNotes) {
         ClayDialog(
-            title = "What's new in v0.2.0",
+            title = "What's new in v${UpdateChecker.CURRENT_VERSION_NAME}",
             onDismiss = { showReleaseNotes = false },
             confirm = {
                 TextButton(onClick = { showReleaseNotes = false }) {

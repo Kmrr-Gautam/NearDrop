@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Kmrr-Gautam/NearDrop/releases"><img src="https://img.shields.io/badge/Release-v0.2.0-blue.svg?style=for-the-badge" alt="Release" /></a>
+  <a href="https://github.com/Kmrr-Gautam/NearDrop/releases"><img src="https://img.shields.io/badge/Release-v0.2.1-blue.svg?style=for-the-badge" alt="Release" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Platform-Android%208.0%2B-green.svg?style=for-the-badge&logo=android" alt="Platform" /></a>
   <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Language-Kotlin%202.0-purple.svg?style=for-the-badge&logo=kotlin" alt="Kotlin" /></a>
   <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4.svg?style=for-the-badge&logo=jetpackcompose" alt="Compose" /></a>
@@ -24,18 +24,20 @@
 Install the verified release APK and start transferring files instantly:
 
 <p align="center">
-  <a href="https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.0.apk">
-    <img src="https://img.shields.io/badge/⬇️%20Direct%20Download-NearDrop%20v0.2.0%20APK-2ea44f?style=for-the-badge&logo=android&logoColor=white" height="44" alt="Download APK" />
+  <a href="https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.1.apk">
+    <img src="https://img.shields.io/badge/⬇️%20Direct%20Download-NearDrop%20v0.2.1%20APK-2ea44f?style=for-the-badge&logo=android&logoColor=white" height="44" alt="Download APK" />
   </a>
 </p>
 
-* **Direct Repository Download**: [`release/neardrop-v0.2.0.apk`](https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.0.apk) *(20 MB)*
+* **Direct Repository Download**: [`release/neardrop-v0.2.1.apk`](https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.1.apk) *(20 MB)*
 * **GitHub Releases**: [NearDrop Releases](https://github.com/Kmrr-Gautam/NearDrop/releases)
+* **Developer Profile**: [Gautam Kumar (@Kmrr-Gautam)](https://github.com/Kmrr-Gautam)
 
 ---
 
-## 🌟 What's New in v0.2.0
+## 🌟 What's New in v0.2.1
 
+* 🔗 **Developer Profile**: Direct developer GitHub link (`@Kmrr-Gautam`) embedded right in Settings.
 * 🚀 **Fluid File Flying Animation**: Physics-inspired parabolic Bezier flight trajectory connecting devices with realistic 3D banking, comet stardust trails, and receiver absorption pulses.
 * ✨ **Spotlight File Card**: Clean, prominent typography showing exact file names, vibrant color-coded file badges (Images, Videos, Music, Documents, Archives, APKs), and formatted sizes.
 * 🧹 **Zero Clutter**: Completely eliminated redundant cards and repetitive text walls for a modern, focused user experience.
