@@ -1,0 +1,9 @@
+[package]
+name = "secure-session"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sha2 = "0.10"
+hmac = "0.12"
+thiserror = "1.0"

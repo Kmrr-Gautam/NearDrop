@@ -1,0 +1,12 @@
+[package]
+name = "transfer-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+transfer-protocol = { path = "../transfer-protocol" }
+secure-session = { path = "../secure-session" }
+file-integrity = { path = "../file-integrity" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"

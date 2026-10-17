@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "transfer-protocol",
+    "secure-session",
+    "file-integrity",
+    "transfer-core",
+]
+resolver = "2"
