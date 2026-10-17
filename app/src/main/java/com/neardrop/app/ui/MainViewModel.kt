@@ -1,6 +1,7 @@
 package com.neardrop.app.ui
 
 import android.app.Application
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,6 +11,8 @@ import com.neardrop.app.data.Settings
 import com.neardrop.app.service.TransferService
 import com.neardrop.app.transfer.FileResolver
 import com.neardrop.app.transfer.SendItem
+import com.neardrop.app.wireless.DirectHotspotConnector
+import com.neardrop.app.wireless.LocalOnlyHotspotManager
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -35,6 +38,82 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val localIp = engine.localIp
     val selectedDevice = MutableStateFlow<DiscoveredDevice?>(null)
     val selectedItems = MutableStateFlow<List<SendItem>>(emptyList())
+
+    // Direct Offline Hotspot (No router / Cellular data fallback)
+    val hotspotManager = LocalOnlyHotspotManager(app)
+    val hotspotRunning = MutableStateFlow(false)
+    val hotspotSsid = MutableStateFlow("")
+    val hotspotPassphrase = MutableStateFlow("")
+    val hotspotIp = MutableStateFlow("192.168.43.1")
+    val hotspotError = MutableStateFlow<String?>(null)
+    val isConnectingHotspot = DirectHotspotConnector.isConnecting
+    val isConnectedHotspot = DirectHotspotConnector.isConnected
+
+    fun startReceiverHotspot() {
+        hotspotError.value = null
+        hotspotManager.startHotspot(object : LocalOnlyHotspotManager.HotspotCallback {
+            override fun onHotspotStarted(ssid: String, passphrase: String) {
+                hotspotRunning.value = true
+                hotspotSsid.value = ssid
+                hotspotPassphrase.value = passphrase
+                hotspotIp.value = hotspotManager.hotspotIpAddress ?: "192.168.43.1"
+                // Ensure receiver server is active
+                engine.setReceiving(true)
+            }
+
+            override fun onHotspotFailed(reason: Int) {
+                hotspotRunning.value = false
+                hotspotError.value = when (reason) {
+                    -1 -> "Local hotspot requires Android 8.0 or higher"
+                    -2 -> "Wi-Fi hardware unavailable"
+                    1 -> "Wi-Fi hotspot failed (Tethering error)"
+                    2 -> "Wi-Fi hotspot unsupported or blocked by system"
+                    else -> "Could not start temporary hotspot (code $reason)"
+                }
+            }
+
+            override fun onHotspotStopped() {
+                hotspotRunning.value = false
+                hotspotSsid.value = ""
+                hotspotPassphrase.value = ""
+            }
+        })
+    }
+
+    fun stopReceiverHotspot() {
+        hotspotManager.stopHotspot()
+        hotspotRunning.value = false
+        hotspotSsid.value = ""
+        hotspotPassphrase.value = ""
+    }
+
+    fun openWifiSettings(context: Context) {
+        DirectHotspotConnector.openWifiSettings(context)
+    }
+
+    fun connectSenderToHotspot(
+        context: Context,
+        ssid: String,
+        passphrase: String,
+        targetIp: String? = null,
+        targetPort: Int = Proto.DEFAULT_PORT,
+        targetName: String? = null,
+        onConnected: (DiscoveredDevice) -> Unit,
+        onFailed: (String) -> Unit
+    ) {
+        DirectHotspotConnector.connectToHotspot(
+            context,
+            ssid,
+            passphrase,
+            onConnected = { gateway ->
+                val ip = targetIp ?: gateway ?: "192.168.43.1"
+                val dev = addManualDevice(ip, targetPort, targetName ?: "NearDrop Receiver ($ssid)")
+                selectedDevice.value = dev
+                onConnected(dev)
+            },
+            onFailed = onFailed
+        )
+    }
 
     init {
         viewModelScope.launch {
@@ -93,6 +172,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun connectWifiDirect(addr: String) = engine.wifiDirect.connect(addr)
     fun disconnectWifiDirect() = engine.wifiDirect.disconnect()
     val receivedPath: String get() = engine.receivedDir.absolutePath
+    fun openReceivedFolder(context: Context) = NearDropFileManager.openNearDropFolder(context)
+    fun openReceivedFile(context: Context, fileName: String) = NearDropFileManager.openFile(context, fileName)
     val fingerprint: String get() = engine.identity.fingerprint
     val listenPort get() = engine.listenPort
     val p2pSupported get() = engine.wifiDirect.supported

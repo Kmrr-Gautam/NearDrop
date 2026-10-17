@@ -116,16 +116,16 @@ object UpdateInstaller {
 }
 
 object UpdateChecker {
-    const val CURRENT_VERSION_CODE = 5
-    const val CURRENT_VERSION_NAME = "0.2.3"
+    const val CURRENT_VERSION_CODE = 6
+    const val CURRENT_VERSION_NAME = "0.2.4"
     private const val UPDATE_URL = "https://raw.githubusercontent.com/Kmrr-Gautam/NearDrop/main/version.json"
 
     val latestWhatsNew = listOf(
-        "⚡ In-app update downloader: download & install updates seamlessly inside NearDrop without browser redirects",
-        "📱 Instant QR scanner fix: zero-latency camera scanning for PC screens & monitors",
-        "🌐 Show device local IP in Settings About section with 1-tap copy",
-        "🔗 Developer GitHub profile link (@Kmrr-Gautam) in Settings",
-        "🚀 Parabolic file flying animations and modern Claymorphic transfer cards"
+        "📁 Dedicated NearDrop folder in File Manager for received photos, docs, zips, and music with automatic media scanning",
+        "📶 Direct Offline Share: connect via temporary hotspot and Wi-Fi without passwords when both devices are on cellular data",
+        "📂 Open NearDrop folder & 1-tap open files from transfer details and completed notifications",
+        "⚡ In-app update downloader: download and install updates seamlessly inside NearDrop without browser redirects",
+        "📱 Instant QR scanner fix: zero-latency camera scanning for PC screens & monitors"
     )
 
     fun getInstalledVersionCode(ctx: Context?): Int {

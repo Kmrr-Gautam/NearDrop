@@ -202,7 +202,8 @@ class TransferReceiver(
             ch.sendControl(JSONObject().ctrl("response").put("accept", false).put("reason", "Declined"))
             throw TransferRejectedException("Declined")
         }
-        partialRoot.mkdirs(); finalDir.mkdirs()
+        partialRoot.mkdirs()
+        runCatching { finalDir.mkdirs() }
         val dir = File(partialRoot, Hex.encode(Hex.sha256((fp + tid).toByteArray())).take(32))
         val manifestFile = File(dir, "manifest.json")
         val manifestJson = Manifest.toJson(files).toString()
@@ -273,8 +274,23 @@ class TransferReceiver(
                     }
                 }
             }
-            val target = FileNames.uniqueFile(finalDir, f.path)
-            Files.move(part.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE)
+            val target = runCatching {
+                FileNames.uniqueFile(finalDir, f.path)
+            }.getOrElse {
+                val staging = File(dir, "out")
+                staging.mkdirs()
+                FileNames.uniqueFile(staging, f.path)
+            }
+            try {
+                Files.move(part.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE)
+            } catch (_: Exception) {
+                try {
+                    Files.move(part.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                } catch (_: Exception) {
+                    part.copyTo(target, overwrite = true)
+                    part.delete()
+                }
+            }
             saved.add(target)
             base += f.size
             ch.sendControl(JSONObject().ctrl("file_ok").put("index", f.index))

@@ -16,6 +16,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -58,6 +59,7 @@ import com.neardrop.app.ui.theme.clay
 import com.neardrop.app.update.*
 import com.neardrop.app.transfer.IncomingRequest
 import com.neardrop.app.transfer.IncomingUi
+import com.neardrop.app.ui.wireless.DirectOfflineShareDialog
 import java.text.DateFormat
 import java.util.Date
 import kotlinx.coroutines.delay
@@ -135,6 +137,8 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
     var detailRecord by remember { mutableStateOf<TransferRecord?>(null) }
     var showReceiveQr by remember { mutableStateOf(false) }
     var showScanQr by remember { mutableStateOf(false) }
+    var showDirectOfflineDialog by remember { mutableStateOf(false) }
+    var directOfflineInitialTab by remember { mutableStateOf("receiver") }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
@@ -150,7 +154,47 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val statusText = if (receiving) "✓ Ready to receive" else "Receiving is off"
                 ClayChip(statusText, true, color = if (receiving) Clay.Mint else Clay.Peach)
-                if (!internet) ClayChip("Direct P2P", true, color = Clay.Sky)
+                if (!lan) ClayChip("⚡ Direct Hotspot", true, color = Clay.Peach, onClick = { directOfflineInitialTab = "receiver"; showDirectOfflineDialog = true })
+                else if (!internet) ClayChip("Direct P2P", true, color = Clay.Sky)
+            }
+        }
+        if (!lan) {
+            item {
+                ClayCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = if (isDark) Color(0xFF2E241E) else Clay.Peach.copy(alpha = 0.35f)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier.size(44.dp).clay(if (isDark) Clay.DarkPeach else Clay.Peach, CircleShape, 2.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.WifiTethering, null, tint = if (isDark) Clay.DarkPeachAccent else Clay.Charcoal, modifier = Modifier.size(24.dp))
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Cellular Data / No Shared Wi-Fi", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                            Text("Connect sender & receiver directly using temporary hotspot without passwords or internet.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ClayButton(
+                            text = "Receive (Hotspot)",
+                            onClick = { directOfflineInitialTab = "receiver"; showDirectOfflineDialog = true },
+                            modifier = Modifier.weight(1f).height(42.dp),
+                            color = Clay.Mint,
+                            icon = Icons.Default.WifiTethering
+                        )
+                        ClayButton(
+                            text = "Send (Wi-Fi)",
+                            onClick = { directOfflineInitialTab = "sender"; showDirectOfflineDialog = true },
+                            modifier = Modifier.weight(1f).height(42.dp),
+                            color = Clay.Sky,
+                            icon = Icons.Default.Wifi
+                        )
+                    }
+                }
             }
         }
         item {
@@ -241,9 +285,19 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
         }
         if (devices.isEmpty()) item {
             ClayRadarScanner(
-                title = "Looking for devices…",
-                subtitle = "Make sure both devices have NearDrop open on the same Wi-Fi network."
+                title = if (!lan) "On Cellular Data · No Wi-Fi" else "Looking for devices…",
+                subtitle = if (!lan) "Both devices can connect directly via temporary hotspot without Wi-Fi or passwords." else "Make sure both devices have NearDrop open on the same Wi-Fi network."
             )
+            if (!lan) {
+                Spacer(Modifier.height(8.dp))
+                ClayButton(
+                    text = "Direct Offline Share (Hotspot & Wi-Fi)",
+                    onClick = { showDirectOfflineDialog = true },
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    color = Clay.Peach,
+                    icon = Icons.Default.WifiTethering
+                )
+            }
         }
         items(devices, key = { it.id }) { d ->
             AnimatedVisibility(
@@ -268,14 +322,30 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
             Text("Total size: ${Fmt.bytes(r.totalBytes)}", fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(8.dp))
             Text("Files:", fontWeight = FontWeight.Bold)
-            r.fileNames.lines().filter { it.isNotBlank() }.take(20).forEach {
-                val fName = it.substringAfterLast('/').substringAfterLast('\\')
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
+            r.fileNames.lines().filter { it.isNotBlank() }.take(20).forEach { fileEntry ->
+                val fName = fileEntry.substringAfterLast('/').substringAfterLast('\\')
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { vm.openReceivedFile(ctx, fileEntry) }
+                        .padding(horizontal = 4.dp, vertical = 4.dp)
+                ) {
                     Icon(Icons.Default.InsertDriveFile, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(6.dp))
-                    Text(fName, maxLines = 1, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    Text(fName, maxLines = 1, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                    Icon(Icons.Default.OpenInNew, "Open", modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
             }
+            Spacer(Modifier.height(8.dp))
+            ClayButton(
+                text = "Open NearDrop folder",
+                onClick = { vm.openReceivedFolder(ctx) },
+                modifier = Modifier.fillMaxWidth(),
+                color = Clay.Mint,
+                icon = Icons.Default.FolderOpen
+            )
         }
     }
 
@@ -283,16 +353,40 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
         QrScannerDialog(
             onDismiss = { showScanQr = false },
             onScanned = { info ->
-                if (info.ip.startsWith("room:")) {
+                if (info.isHotspot && !info.ssid.isNullOrBlank()) {
+                    Toast.makeText(ctx, "Connecting to hotspot ${info.ssid} without password…", Toast.LENGTH_SHORT).show()
+                    vm.connectSenderToHotspot(
+                        ctx,
+                        info.ssid,
+                        info.passphrase ?: "",
+                        targetIp = info.ip,
+                        targetPort = info.port,
+                        targetName = info.name,
+                        onConnected = { dev ->
+                            Toast.makeText(ctx, "Connected to ${dev.name}!", Toast.LENGTH_SHORT).show()
+                            showScanQr = false
+                            onSend()
+                        },
+                        onFailed = { err ->
+                            Toast.makeText(ctx, "Hotspot connection: $err", Toast.LENGTH_LONG).show()
+                            val dev = vm.addManualDevice(info.ip, info.port, info.name)
+                            vm.selectedDevice.value = dev
+                            showScanQr = false
+                            onSend()
+                        }
+                    )
+                } else if (info.ip.startsWith("room:")) {
                     val room = info.ip.removePrefix("room:")
                     Toast.makeText(ctx, "Scanned PC Web Room #$room", Toast.LENGTH_LONG).show()
+                    showScanQr = false
+                    onSend()
                 } else {
                     val dev = vm.addManualDevice(info.ip, info.port, info.name)
                     vm.selectedDevice.value = dev
                     Toast.makeText(ctx, "Connected to ${dev.name} (${dev.host})", Toast.LENGTH_SHORT).show()
+                    showScanQr = false
+                    onSend()
                 }
-                showScanQr = false
-                onSend()
             }
         )
     }
@@ -303,6 +397,17 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
             port = if (port > 0) port else 45454,
             fingerprint = vm.fingerprint,
             onDismiss = { showReceiveQr = false }
+        )
+    }
+    if (showDirectOfflineDialog) {
+        DirectOfflineShareDialog(
+            vm = vm,
+            initialTab = directOfflineInitialTab,
+            onDismiss = { showDirectOfflineDialog = false },
+            onOpenScanner = {
+                showDirectOfflineDialog = false
+                showScanQr = true
+            }
         )
     }
 }
@@ -437,15 +542,36 @@ fun SendScreen(vm: MainViewModel, onBack: () -> Unit, onSent: (String) -> Unit) 
         QrScannerDialog(
             onDismiss = { showScanQr = false },
             onScanned = { info ->
-                if (info.ip.startsWith("room:")) {
+                if (info.isHotspot && !info.ssid.isNullOrBlank()) {
+                    Toast.makeText(ctx, "Connecting to hotspot ${info.ssid} without password…", Toast.LENGTH_SHORT).show()
+                    vm.connectSenderToHotspot(
+                        ctx,
+                        info.ssid,
+                        info.passphrase ?: "",
+                        targetIp = info.ip,
+                        targetPort = info.port,
+                        targetName = info.name,
+                        onConnected = { dev ->
+                            Toast.makeText(ctx, "Connected to ${dev.name}!", Toast.LENGTH_SHORT).show()
+                            showScanQr = false
+                        },
+                        onFailed = { err ->
+                            Toast.makeText(ctx, "Hotspot connection: $err", Toast.LENGTH_LONG).show()
+                            val dev = vm.addManualDevice(info.ip, info.port, info.name)
+                            vm.selectedDevice.value = dev
+                            showScanQr = false
+                        }
+                    )
+                } else if (info.ip.startsWith("room:")) {
                     val room = info.ip.removePrefix("room:")
                     Toast.makeText(ctx, "Scanned PC Web Room #$room", Toast.LENGTH_LONG).show()
+                    showScanQr = false
                 } else {
                     val dev = vm.addManualDevice(info.ip, info.port, info.name)
                     vm.selectedDevice.value = dev
                     Toast.makeText(ctx, "Connected to ${dev.name} (${dev.host})", Toast.LENGTH_SHORT).show()
+                    showScanQr = false
                 }
-                showScanQr = false
             }
         )
     }
@@ -1193,6 +1319,7 @@ private fun FileFlyingHero(
 // ------------------------------------------------------------------ History (Screen G)
 @Composable
 fun TransfersScreen(vm: MainViewModel, onOpen: (String) -> Unit) {
+    val ctx = LocalContext.current
     val active by vm.progress.collectAsState()
     val history by vm.history.collectAsState()
     var filter by remember { mutableStateOf("All") }
@@ -1225,14 +1352,30 @@ fun TransfersScreen(vm: MainViewModel, onOpen: (String) -> Unit) {
             Text("Total size: ${Fmt.bytes(r.totalBytes)}", fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(8.dp))
             Text("Files:", fontWeight = FontWeight.Bold)
-            r.fileNames.lines().filter { it.isNotBlank() }.take(20).forEach {
-                val fName = it.substringAfterLast('/').substringAfterLast('\\')
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
+            r.fileNames.lines().filter { it.isNotBlank() }.take(20).forEach { fileEntry ->
+                val fName = fileEntry.substringAfterLast('/').substringAfterLast('\\')
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { vm.openReceivedFile(ctx, fileEntry) }
+                        .padding(horizontal = 4.dp, vertical = 4.dp)
+                ) {
                     Icon(Icons.Default.InsertDriveFile, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(6.dp))
-                    Text(fName, maxLines = 1, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    Text(fName, maxLines = 1, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                    Icon(Icons.Default.OpenInNew, "Open", modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
             }
+            Spacer(Modifier.height(8.dp))
+            ClayButton(
+                text = "Open NearDrop folder",
+                onClick = { vm.openReceivedFolder(ctx) },
+                modifier = Modifier.fillMaxWidth(),
+                color = Clay.Mint,
+                icon = Icons.Default.FolderOpen
+            )
         }
     }
 }
@@ -1413,7 +1556,15 @@ fun SettingsScreen(vm: MainViewModel, onTrusted: () -> Unit) {
                         Text(vm.receivedPath, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(12.dp))
+                ClayButton(
+                    text = "Open NearDrop folder",
+                    onClick = { vm.openReceivedFolder(ctx) },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Clay.Mint,
+                    icon = Icons.Default.FolderOpen
+                )
+                Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     ClayButton(
                         text = "Clear partial data",

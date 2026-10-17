@@ -62,7 +62,7 @@ class NearDropEngine(private val app: Context) {
     @Volatile private var current = Settings()
 
     val partialRoot = File(app.getExternalFilesDir(null) ?: app.filesDir, "partial")
-    val receivedDir = File(app.getExternalFilesDir(null) ?: app.filesDir, "NearDrop")
+    val receivedDir: File get() = NearDropFileManager.getNearDropFolder(app)
 
     init {
         scope.launch { settings.flow.collect { current = it } }
@@ -139,7 +139,12 @@ class NearDropEngine(private val app: Context) {
                     },
                     decide = { req -> runBlocking { decideIncoming(req) } })
             }
-            tracker.fileNames = saved.map { it.name }
+            val finalFiles = withContext(Dispatchers.IO) {
+                saved.map { f ->
+                    NearDropFileManager.saveToNearDropFolder(app, f, f.name)
+                }
+            }
+            tracker.fileNames = finalFiles.map { it.name }
             tracker.finish(TransferStatus.COMPLETED, null)
         } catch (t: Throwable) { tracker.fail(t, id) }
         finally { sockets.remove(id); runCatching { sock.close() } }

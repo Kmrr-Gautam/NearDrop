@@ -103,9 +103,21 @@ object TransferNotifications {
             TransferStatus.INTERRUPTED -> "Transfer interrupted"
             else -> "Transfer failed"
         }
-        ctx.getSystemService(NotificationManager::class.java).notify((System.nanoTime() % 100000).toInt() + 2000,
-            NotificationCompat.Builder(ctx, CH_RESULT).setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle(title).setContentText(msg ?: "").setContentIntent(open(ctx)).setAutoCancel(true).build())
+        val notifBuilder = NotificationCompat.Builder(ctx, CH_RESULT).setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title).setContentText(msg ?: "").setContentIntent(open(ctx)).setAutoCancel(true)
+        if (s == TransferStatus.COMPLETED && dir == Direction.RECEIVE) {
+            val folderIntent = NearDropFileManager.getFolderIntent(ctx)
+            if (folderIntent != null) {
+                val pi = PendingIntent.getActivity(
+                    ctx,
+                    (System.nanoTime() % 100000).toInt(),
+                    folderIntent,
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                )
+                notifBuilder.addAction(0, "Open folder", pi)
+            }
+        }
+        ctx.getSystemService(NotificationManager::class.java).notify((System.nanoTime() % 100000).toInt() + 2000, notifBuilder.build())
     }
 }
 

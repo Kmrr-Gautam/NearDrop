@@ -19,6 +19,8 @@ public class LocalOnlyHotspotManager {
     private final WifiManager wifiManager;
     private WifiManager.LocalOnlyHotspotReservation reservation;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private String currentSsid = "";
+    private String currentPassphrase = "";
 
     public LocalOnlyHotspotManager(Context context) {
         this.context = context.getApplicationContext();
@@ -62,6 +64,8 @@ public class LocalOnlyHotspotManager {
 
                     final String finalSsid = ssid != null ? ssid : "NearDrop-Direct";
                     final String finalPass = passphrase != null ? passphrase : "";
+                    currentSsid = finalSsid;
+                    currentPassphrase = finalPass;
 
                     mainHandler.post(() -> callback.onHotspotStarted(finalSsid, finalPass));
                 }
@@ -70,6 +74,8 @@ public class LocalOnlyHotspotManager {
                 public void onStopped() {
                     super.onStopped();
                     reservation = null;
+                    currentSsid = "";
+                    currentPassphrase = "";
                     mainHandler.post(callback::onHotspotStopped);
                 }
 
@@ -77,6 +83,8 @@ public class LocalOnlyHotspotManager {
                 public void onFailed(int reason) {
                     super.onFailed(reason);
                     reservation = null;
+                    currentSsid = "";
+                    currentPassphrase = "";
                     mainHandler.post(() -> callback.onHotspotFailed(reason));
                 }
             }, mainHandler);
@@ -92,9 +100,41 @@ public class LocalOnlyHotspotManager {
             } catch (Exception ignored) {}
             reservation = null;
         }
+        currentSsid = "";
+        currentPassphrase = "";
     }
 
     public boolean isRunning() {
         return reservation != null;
+    }
+
+    public String getCurrentSsid() {
+        return currentSsid;
+    }
+
+    public String getCurrentPassphrase() {
+        return currentPassphrase;
+    }
+
+    public String getHotspotIpAddress() {
+        try {
+            java.util.Enumeration<java.net.NetworkInterface> interfaces = java.net.NetworkInterface.getNetworkInterfaces();
+            if (interfaces != null) {
+                while (interfaces.hasMoreElements()) {
+                    java.net.NetworkInterface intf = interfaces.nextElement();
+                    String name = intf.getName().toLowerCase();
+                    if (name.contains("ap") || name.contains("swlan") || name.contains("wlan") || name.contains("hotspot")) {
+                        java.util.Enumeration<java.net.InetAddress> addrs = intf.getInetAddresses();
+                        while (addrs.hasMoreElements()) {
+                            java.net.InetAddress addr = addrs.nextElement();
+                            if (!addr.isLoopbackAddress() && addr instanceof java.net.Inet4Address) {
+                                return addr.getHostAddress();
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return "192.168.43.1";
     }
 }

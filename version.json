@@ -1,12 +1,12 @@
 {
-  "versionCode": 5,
-  "versionName": "0.2.3",
-  "releaseUrl": "https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.3.apk",
+  "versionCode": 6,
+  "versionName": "0.2.4",
+  "releaseUrl": "https://github.com/Kmrr-Gautam/NearDrop/raw/main/release/neardrop-v0.2.4.apk",
   "whatsNew": [
+    "📁 Dedicated NearDrop folder in File Manager for received photos, docs, zips, and music with automatic media scanning",
+    "📶 Direct Offline Share: connect via temporary hotspot and Wi-Fi without passwords when both devices are on cellular data",
+    "📂 Open NearDrop folder & 1-tap open files from transfer details and completed notifications",
     "⚡ In-app update downloader: download and install updates seamlessly inside NearDrop without browser redirects",
-    "📱 Instant QR scanner fix: zero-latency camera scanning for PC screens & monitors",
-    "🌐 Show device local IP in Settings About section with 1-tap copy",
-    "🔗 Developer GitHub profile link (@Kmrr-Gautam) in Settings",
-    "🚀 Parabolic file flying animations and modern Claymorphic transfer cards"
+    "📱 Instant QR scanner fix: zero-latency camera scanning for PC screens & monitors"
   ]
 }

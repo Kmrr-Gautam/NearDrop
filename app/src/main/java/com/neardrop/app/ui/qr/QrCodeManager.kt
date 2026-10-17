@@ -19,7 +19,10 @@ data class ReceiverQrInfo(
     val ip: String,
     val port: Int,
     val name: String,
-    val fingerprint: String? = null
+    val fingerprint: String? = null,
+    val ssid: String? = null,
+    val passphrase: String? = null,
+    val isHotspot: Boolean = false
 )
 
 object QrCodeManager {
@@ -27,24 +30,51 @@ object QrCodeManager {
     /**
      * Encodes receiver connection details into a compact JSON string.
      */
-    fun encodeReceiverInfo(ip: String, port: Int, name: String, fingerprint: String? = null): String {
+    fun encodeReceiverInfo(
+        ip: String,
+        port: Int,
+        name: String,
+        fingerprint: String? = null,
+        ssid: String? = null,
+        passphrase: String? = null,
+        isHotspot: Boolean = false
+    ): String {
         return JSONObject().apply {
             put("protocol", "neardrop")
             put("ip", ip)
             put("port", port)
             put("name", name)
             if (fingerprint != null) put("fp", fingerprint)
+            if (ssid != null) put("ssid", ssid)
+            if (passphrase != null) put("pass", passphrase)
+            if (isHotspot) put("hotspot", true)
         }.toString()
     }
 
     /**
-     * Parses receiver connection details from JSON, URI string, plain IP, or web payloads.
+     * Parses receiver connection details from JSON, URI string, plain IP, Wi-Fi QR, or web payloads.
      */
     fun parseReceiverInfo(rawText: String): ReceiverQrInfo? {
         val text = rawText.trim()
         if (text.isEmpty()) return null
         try {
-            // 1. JSON format (Android native or PC Web)
+            // 0. Standard Wi-Fi QR format: WIFI:S:<ssid>;T:<WPA|WEP|nopass>;P:<passphrase>;;
+            if (text.startsWith("WIFI:", ignoreCase = true)) {
+                val ssid = Regex("""S:([^;]+)""", RegexOption.IGNORE_CASE).find(text)?.groupValues?.getOrNull(1)
+                val pass = Regex("""P:([^;]+)""", RegexOption.IGNORE_CASE).find(text)?.groupValues?.getOrNull(1) ?: ""
+                if (!ssid.isNullOrBlank()) {
+                    return ReceiverQrInfo(
+                        ip = "192.168.43.1",
+                        port = 45454,
+                        name = "Hotspot ($ssid)",
+                        ssid = ssid,
+                        passphrase = pass,
+                        isHotspot = true
+                    )
+                }
+            }
+
+            // 1. JSON format (Android native, Hotspot, or PC Web)
             if (text.startsWith("{")) {
                 val json = JSONObject(text)
                 val ip = json.optString("ip").takeIf { it.isNotBlank() }
@@ -52,8 +82,11 @@ object QrCodeManager {
                 val port = json.optInt("port", 45454)
                 val name = json.optString("name").takeIf { it.isNotBlank() } ?: "Receiver"
                 val fp = json.optString("fp").takeIf { it.isNotBlank() }
+                val ssid = json.optString("ssid").takeIf { it.isNotBlank() }
+                val pass = json.optString("pass").takeIf { it.isNotBlank() }
+                val isHotspot = json.optBoolean("hotspot", false) || ssid != null
                 if (ip != null) {
-                    return ReceiverQrInfo(ip, port, name, fp)
+                    return ReceiverQrInfo(ip, port, name, fp, ssid, pass, isHotspot)
                 }
 
                 // If JSON only has room code (WebRTC room from PC)
