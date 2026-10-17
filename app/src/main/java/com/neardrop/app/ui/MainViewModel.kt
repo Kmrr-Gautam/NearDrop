@@ -33,6 +33,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val p2pIsOwner = engine.wifiDirect.isGroupOwner
     val receiving = engine.receiving
     val localIp = engine.localIp
+    val webBridgeRunning = engine.webBridgeRunning
+    val webBridgePort = engine.webBridgePort
     val selectedDevice = MutableStateFlow<DiscoveredDevice?>(null)
     val selectedItems = MutableStateFlow<List<SendItem>>(emptyList())
 

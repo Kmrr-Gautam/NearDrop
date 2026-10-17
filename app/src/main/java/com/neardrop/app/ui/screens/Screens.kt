@@ -125,12 +125,14 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
     val receiving by vm.receiving.collectAsState()
     val localIp by vm.localIp.collectAsState()
     val port by vm.listenPort.collectAsState()
+    val webPort by vm.webBridgePort.collectAsState()
     var permsMissing by remember { mutableStateOf(Perms.missing(ctx)) }
     val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permsMissing = Perms.missing(ctx); vm.startDiscovery() }
     val fps = trusted.map { it.fingerprint }.toSet()
     var detailRecord by remember { mutableStateOf<TransferRecord?>(null) }
     var showReceiveQr by remember { mutableStateOf(false) }
     var showScanQr by remember { mutableStateOf(false) }
+    var showPcConnect by remember { mutableStateOf(false) }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
@@ -207,13 +209,22 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
                 }
                 if (receiving) {
                     Spacer(Modifier.height(12.dp))
-                    ClayButton(
-                        text = "Show QR Code to Receive",
-                        onClick = { showReceiveQr = true },
-                        modifier = Modifier.fillMaxWidth().height(46.dp),
-                        icon = Icons.Default.QrCode2,
-                        color = Clay.Mint
-                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        ClayButton(
+                            text = "Receive QR",
+                            onClick = { showReceiveQr = true },
+                            modifier = Modifier.weight(1f).height(46.dp),
+                            icon = Icons.Default.QrCode2,
+                            color = Clay.Mint
+                        )
+                        ClayButton(
+                            text = "PC Connect",
+                            onClick = { showPcConnect = true },
+                            modifier = Modifier.weight(1f).height(46.dp),
+                            icon = Icons.Default.Computer,
+                            color = Clay.Sky
+                        )
+                    }
                 }
             }
         }
@@ -292,6 +303,14 @@ fun HomeScreen(vm: MainViewModel, onSend: () -> Unit, onOpen: (String) -> Unit, 
             port = if (port > 0) port else 45454,
             fingerprint = vm.fingerprint,
             onDismiss = { showReceiveQr = false }
+        )
+    }
+    if (showPcConnect) {
+        com.neardrop.app.ui.qr.PcConnectDialog(
+            deviceName = settings.deviceName,
+            ipAddress = localIp ?: "127.0.0.1",
+            port = if (webPort > 0) webPort else 45455,
+            onDismiss = { showPcConnect = false }
         )
     }
 }
