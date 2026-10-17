@@ -1257,6 +1257,7 @@ fun TrustedScreen(vm: MainViewModel, onBack: () -> Unit) {
 fun SettingsScreen(vm: MainViewModel, onTrusted: () -> Unit) {
     val s by vm.settings.collectAsState()
     val isDark = isDark()
+    val ctx = LocalContext.current
     val internet by vm.hasInternet.collectAsState()
     val port by vm.listenPort.collectAsState()
     var rename by remember { mutableStateOf(false) }
@@ -1496,7 +1497,7 @@ fun SettingsScreen(vm: MainViewModel, onTrusted: () -> Unit) {
                             if (!isCheckingUpdates) {
                                 scope.launch {
                                     isCheckingUpdates = true
-                                    val result = UpdateChecker.check()
+                                    val result = UpdateChecker.check(ctx)
                                     isCheckingUpdates = false
                                     val now = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date())
                                     lastCheckedTime = "Today at $now"
@@ -1504,8 +1505,9 @@ fun SettingsScreen(vm: MainViewModel, onTrusted: () -> Unit) {
                                     if (info != null) {
                                         foundUpdate = info
                                         updateStatusMessage = "Update available: v${info.versionName}"
+                                        com.neardrop.app.service.TransferNotifications.notifyUpdate(ctx, info)
                                     } else {
-                                        updateStatusMessage = "You're on the latest version (v0.2.0)"
+                                        updateStatusMessage = "You're on the latest version (v${UpdateChecker.CURRENT_VERSION_NAME})"
                                     }
                                 }
                             }

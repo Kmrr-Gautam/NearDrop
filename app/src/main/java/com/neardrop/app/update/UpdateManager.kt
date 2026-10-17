@@ -44,7 +44,22 @@ object UpdateChecker {
         "⚡ Real-time speed chips, remaining time estimation, and senior-friendly one-tap actions"
     )
 
-    suspend fun check(): Result<AppUpdateInfo?> = withContext(Dispatchers.IO) {
+    fun getInstalledVersionCode(ctx: Context?): Int {
+        if (ctx == null) return CURRENT_VERSION_CODE
+        return try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                ctx.packageManager.getPackageInfo(ctx.packageName, 0).longVersionCode.toInt()
+            } else {
+                @Suppress("DEPRECATION")
+                ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionCode
+            }
+        } catch (e: Exception) {
+            CURRENT_VERSION_CODE
+        }
+    }
+
+    suspend fun check(ctx: Context? = null): Result<AppUpdateInfo?> = withContext(Dispatchers.IO) {
+        val installedCode = getInstalledVersionCode(ctx)
         runCatching {
             val conn = (URL(UPDATE_URL).openConnection() as HttpURLConnection).apply {
                 connectTimeout = 6000
@@ -66,7 +81,7 @@ object UpdateChecker {
                     }
                 }
                 val info = AppUpdateInfo(code, name, url, notes.ifEmpty { latestWhatsNew })
-                if (code > CURRENT_VERSION_CODE) info else null
+                if (code > installedCode) info else null
             } else {
                 null
             }

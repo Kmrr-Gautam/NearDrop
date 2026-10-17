@@ -28,12 +28,14 @@ fun NearDropApp(vm: MainViewModel) {
     val incoming by vm.incoming.collectAsState()
     val activeTransfers by vm.progress.collectAsState()
     val nav = rememberNavController()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
 
     var updateInfo by remember { mutableStateOf<com.neardrop.app.update.AppUpdateInfo?>(null) }
     LaunchedEffect(Unit) {
         delay(2500)
-        com.neardrop.app.update.UpdateChecker.check().getOrNull()?.let { info ->
+        com.neardrop.app.update.UpdateChecker.check(ctx).getOrNull()?.let { info ->
             updateInfo = info
+            com.neardrop.app.service.TransferNotifications.notifyUpdate(ctx, info)
         }
     }
 

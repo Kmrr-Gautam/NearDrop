@@ -16,18 +16,56 @@ import com.neardrop.app.core.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.combine
 
+import android.net.Uri
+import com.neardrop.app.update.AppUpdateInfo
+
 object TransferNotifications {
     const val CH_ONGOING = "ongoing"
     const val CH_RESULT = "results"
+    const val CH_UPDATES = "updates"
     const val ID_FOREGROUND = 1001
+    const val ID_UPDATE = 9999
 
     fun ensureChannels(ctx: Context) {
         val nm = ctx.getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel(CH_ONGOING, "Transfers in progress", NotificationManager.IMPORTANCE_LOW))
         nm.createNotificationChannel(NotificationChannel(CH_RESULT, "Transfer results and requests", NotificationManager.IMPORTANCE_DEFAULT))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            nm.createNotificationChannel(
+                NotificationChannel(CH_UPDATES, "App Updates", NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = "Notifications when NearDrop updates are ready to install"
+                }
+            )
+        }
     }
 
     private fun open(ctx: Context) = PendingIntent.getActivity(ctx, 0, Intent(ctx, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+
+    fun notifyUpdate(ctx: Context, info: AppUpdateInfo) {
+        if (!canNotify(ctx)) return
+        ensureChannels(ctx)
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(info.releaseUrl)).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        val pi = PendingIntent.getActivity(ctx, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+
+        val notif = NotificationCompat.Builder(ctx, CH_UPDATES)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("NearDrop Update Available: v${info.versionName}")
+            .setContentText("Tap to download & install the latest updates.")
+            .setStyle(
+                NotificationCompat.BigTextStyle().bigText(
+                    "NearDrop v${info.versionName} is ready to install!\n" + info.whatsNew.joinToString("\n") { "• $it" }
+                )
+            )
+            .setContentIntent(pi)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .addAction(0, "Download Update", pi)
+            .build()
+
+        ctx.getSystemService(NotificationManager::class.java).notify(ID_UPDATE, notif)
+    }
 
     fun ongoing(ctx: Context, active: List<TransferProgress>, receiving: Boolean): Notification {
         val b = NotificationCompat.Builder(ctx, CH_ONGOING).setSmallIcon(R.drawable.ic_notification)
